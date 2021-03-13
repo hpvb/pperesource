@@ -1,0 +1,14 @@
+.cproject
+.project
+.pydevproject
+.settings
+main
+vgcore*
+*.exe
+*.dll
+*.swp
+*.sh
+*.pyc
+/tests/
+/failed/
+/build/
