@@ -39,14 +39,15 @@ if cc.get_id() == 'msvc'
 	)
 endif
 
-inc = include_directories('include')
+inc = include_directories('include', 'src')
 subdir('include')
 subdir('src')
-#if get_option('use_clang_fuzzer') == false
-#	subdir('test')
-#else
-#	subdir('fuzz')
-#endif
+
+if get_option('use_clang_fuzzer') == false
+	subdir('test')
+else
+	subdir('fuzz')
+endif
 
 pkg = import('pkgconfig')
 pkg.generate(

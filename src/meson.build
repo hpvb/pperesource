@@ -10,17 +10,19 @@ else
 	extra_args = []
 endif
 
-pperesource_sources = [
+pperesource_sources = files([
+	'main.c',
 	'pe/data_directory.c',
 	'pe/header_deserialize.c',
 	'pe/header_print.c',
 	'pe/header_serialize.c',
+	'pe/section.c',
 	'pe/section_deserialize.c',
 	'pe/section_print.c',
 	'pe/section_serialize.c',
 	'ppe_error.c',
 	'utils.c',
-]
+])
 
 pperesource = shared_library(
 	'pperesource',

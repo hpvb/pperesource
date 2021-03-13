@@ -32,4 +32,6 @@ size_t ppelib_write_to_file(ppelib_handle *pe, const char *filename);
 
 void ppelib_destroy(ppelib_handle *pe);
 
+void ppelib_resources_delete(ppelib_handle *pe);
+
 #endif /* _PPERESOURCE_H_ */
