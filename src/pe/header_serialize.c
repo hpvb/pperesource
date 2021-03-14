@@ -25,7 +25,7 @@
 
 #include "header_private.h"
 
-size_t ppelib_header_serialize(const header_t *header, uint8_t *buffer, const size_t offset) {
+size_t header_serialize(const header_t *header, uint8_t *buffer, const size_t offset) {
 	ppelib_reset_error();
 
 	if (!buffer) {

@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "pe/constants.h"
+#include "resources/resource.h"
 
 #include "main.h"
 #include "ppelib_internal.h"
@@ -48,6 +49,15 @@ EXPORT_SYM void ppelib_destroy(ppelib_file_t *pe) {
 			free(pe->sections[i]);
 		}
 	}
+
+	for (size_t i = 0; i < pe->resource_table.size; ++i) {
+		free(pe->resource_table.resources[i]->type);
+		free(pe->resource_table.resources[i]->name);
+		free(pe->resource_table.resources[i]->language);
+		free(pe->resource_table.resources[i]->data);
+		free(pe->resource_table.resources[i]);
+	}
+	free(pe->resource_table.resources);
 
 	free(pe->stub);
 	free(pe->data_directories);
@@ -105,7 +115,7 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 
 	size_t header_offset = pe->pe_header_offset + 4;
 
-	size_t header_size = ppelib_header_deserialize(buffer, size, header_offset, &pe->header);
+	size_t header_size = header_deserialize(buffer, size, header_offset, &pe->header);
 	if (ppelib_error_peek()) {
 		goto out;
 	}
@@ -159,7 +169,7 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 	char first_section = 1;
 
 	for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
-		size_t section_size = ppelib_section_deserialize(buffer, size, offset, pe->sections[i]);
+		size_t section_size = section_deserialize(buffer, size, offset, pe->sections[i]);
 		if (ppelib_error_peek()) {
 			goto out;
 		}
@@ -252,6 +262,15 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 		memcpy(pe->overlay, buffer + pe->end_of_section_data, pe->overlay_size);
 	}
 
+	if (pe->header.number_of_rva_and_sizes > DIR_RESOURCE_TABLE) {
+		section_t *section = pe->data_directories[DIR_RESOURCE_TABLE].section;
+		size_t offset = pe->data_directories[DIR_RESOURCE_TABLE].offset;
+
+		if (section) {
+			resource_table_deserialize(section, offset, &pe->resource_table);
+		}
+	}
+
 out:
 	if (ppelib_error_peek()) {
 		ppelib_destroy(pe);
@@ -317,7 +336,7 @@ EXPORT_SYM size_t ppelib_write_to_buffer(const ppelib_file_t *pe, uint8_t *buffe
 	size_t size = 0;
 
 	//	size_t dos_stub_size = pe->dos_header.stub_size;
-	size_t header_size = ppelib_header_serialize(&pe->header, NULL, 0);
+	size_t header_size = header_serialize(&pe->header, NULL, 0);
 	size_t data_tables_size = pe->header.number_of_rva_and_sizes * DATA_DIRECTORY_SIZE;
 	size_t section_header_size = pe->header.number_of_sections * SECTION_SIZE;
 
@@ -375,7 +394,7 @@ EXPORT_SYM size_t ppelib_write_to_buffer(const ppelib_file_t *pe, uint8_t *buffe
 	memset(buffer, 0, size);
 	memcpy(buffer, pe->stub, pe->stub_size);
 	write_uint32_t(buffer + pe->pe_header_offset, PE_SIGNATURE);
-	ppelib_header_serialize(&pe->header, buffer, pe_header_offset);
+	header_serialize(&pe->header, buffer, pe_header_offset);
 
 	size_t offset = pe_header_offset + header_size;
 	for (uint32_t i = 0; i < pe->header.number_of_rva_and_sizes; ++i) {
@@ -399,7 +418,7 @@ EXPORT_SYM size_t ppelib_write_to_buffer(const ppelib_file_t *pe, uint8_t *buffe
 	offset = section_header_offset;
 	for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
 		section_t *section = pe->sections[i];
-		ppelib_section_serialize(section, buffer, offset);
+		section_serialize(section, buffer, offset);
 
 		if (section->contents_size) {
 			memcpy(buffer + section->pointer_to_raw_data, section->contents, section->contents_size);
@@ -582,7 +601,7 @@ void recalculate_sections(ppelib_file_t *pe) {
 }
 
 void recalculate_header(ppelib_file_t *pe) {
-	uint16_t header_size = (uint16_t)ppelib_header_serialize(&pe->header, NULL, 0);
+	uint16_t header_size = (uint16_t)header_serialize(&pe->header, NULL, 0);
 	size_t data_tables_size = pe->header.number_of_rva_and_sizes * DATA_DIRECTORY_SIZE;
 	size_t section_header_size = pe->header.number_of_sections * SECTION_SIZE;
 

@@ -35,16 +35,20 @@ int main(int argc, char *argv[]) {
 		goto out;
 	}
 
-	ppelib_header_print(&pe->header);
+	header_print(&pe->header);
 	printf("\nDirectories\n");
 	for (uint32_t i = 0; i < pe->header.number_of_rva_and_sizes; ++i) {
-		ppelib_data_directory_print(&pe->data_directories[i]);
+		data_directory_print(&pe->data_directories[i]);
 	}
+	printf("\n");
+
+	printf("\nResources\n");
+	resource_table_print(&pe->resource_table);
 	printf("\n");
 
 	printf("\nSections\n");
 	for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
-		ppelib_section_print(pe->sections[i]);
+		section_print(pe->sections[i]);
 		printf("\n");
 	}
 

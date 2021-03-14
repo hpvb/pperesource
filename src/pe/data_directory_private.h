@@ -39,7 +39,7 @@ typedef struct data_directory {
 	uint32_t id;
 } data_directory_t;
 
-void ppelib_data_directory_print(const data_directory_t *data_directory);
-void ppelib_data_directory_fprint(FILE *stream, const data_directory_t *data_directory);
+void data_directory_print(const data_directory_t *data_directory);
+void data_directory_fprint(FILE *stream, const data_directory_t *data_directory);
 
 #endif /* PPELIB_DATA_DIRECTORY_PRIVATE_H_ */

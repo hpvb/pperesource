@@ -23,6 +23,7 @@ typedef struct data_directory data_directory_t;
 #include "pe/data_directory_private.h"
 #include "pe/header_private.h"
 #include "pe/section_private.h"
+#include "resources/resource.h"
 
 typedef struct ppelib_file {
 	size_t start_of_section_va;
@@ -39,8 +40,7 @@ typedef struct ppelib_file {
 
 	section_t **sections;
 
-	//	certificate_table_t certificate_table;
-	//	ppelib_resource_table_t resource_table;
+	resource_table_t resource_table;
 
 	size_t stub_size;
 	uint8_t *stub;

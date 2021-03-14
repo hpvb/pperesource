@@ -26,17 +26,6 @@
 
 #include "section_private.h"
 
-const section_t *ppelib_section_get(ppelib_file_t *pe, uint16_t section_index) {
-	ppelib_reset_error();
-
-	if (section_index > pe->header.number_of_sections) {
-		ppelib_set_error("Section index out of range");
-		return NULL;
-	}
-
-	return pe->sections[section_index];
-}
-
 size_t section_rva_to_offset(const section_t *section, size_t rva) {
 	size_t rva_base = 0;
 
@@ -87,7 +76,7 @@ section_t *section_find_by_physical_address(ppelib_file_t *pe, size_t address) {
 	return NULL;
 }
 
-uint16_t ppelib_section_create(ppelib_file_t *pe, char name[9], uint32_t virtual_size, uint32_t raw_size,
+uint16_t section_create(ppelib_file_t *pe, char name[9], uint32_t virtual_size, uint32_t raw_size,
 		uint32_t characteristics, uint8_t *data) {
 	ppelib_reset_error();
 
@@ -145,7 +134,7 @@ uint16_t ppelib_section_create(ppelib_file_t *pe, char name[9], uint32_t virtual
 	return pe->header.number_of_sections--;
 }
 
-void ppelib_section_excise(ppelib_file_t *pe, uint16_t section_index, size_t start, size_t end) {
+void section_excise(ppelib_file_t *pe, uint16_t section_index, size_t start, size_t end) {
 	ppelib_reset_error();
 
 	if (section_index > pe->header.number_of_sections) {
@@ -179,7 +168,7 @@ void ppelib_section_excise(ppelib_file_t *pe, uint16_t section_index, size_t sta
 	//ppelib_recalculate(pe);
 }
 
-void ppelib_section_insert_capacity(ppelib_file_t *pe, uint16_t section_index, size_t size, size_t offset) {
+void section_insert_capacity(ppelib_file_t *pe, uint16_t section_index, size_t size, size_t offset) {
 	ppelib_reset_error();
 
 	if (section_index > pe->header.number_of_sections) {
@@ -220,7 +209,7 @@ void ppelib_section_insert_capacity(ppelib_file_t *pe, uint16_t section_index, s
 	//ppelib_recalculate(pe);
 }
 
-void ppelib_section_resize(ppelib_file_t *pe, uint16_t section_index, size_t size) {
+void section_resize(ppelib_file_t *pe, uint16_t section_index, size_t size) {
 	ppelib_reset_error();
 
 	if (section_index > pe->header.number_of_sections) {
@@ -240,7 +229,7 @@ void ppelib_section_resize(ppelib_file_t *pe, uint16_t section_index, size_t siz
 	}
 
 	if (size < section->contents_size) {
-		ppelib_section_excise(pe, section_index, size, section->contents_size);
+		section_excise(pe, section_index, size, section->contents_size);
 		return;
 	}
 
@@ -256,7 +245,7 @@ void ppelib_section_resize(ppelib_file_t *pe, uint16_t section_index, size_t siz
 	//ppelib_recalculate(pe);
 }
 
-uint16_t ppelib_section_find_index(ppelib_file_t *pe, section_t *section) {
+uint16_t section_find_index(ppelib_file_t *pe, section_t *section) {
 	ppelib_reset_error();
 
 	for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {

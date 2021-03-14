@@ -29,7 +29,7 @@
 #include "header_private.h"
 #include "ppelib_internal.h"
 
-void ppelib_header_fprint(FILE *stream, const header_t *header) {
+void header_fprint(FILE *stream, const header_t *header) {
 	ppelib_reset_error();
 
 	if (!header) {
@@ -99,6 +99,6 @@ void ppelib_header_fprint(FILE *stream, const header_t *header) {
 	fprintf(stream, "NumberOfRvaAndSizes: %u\n", header->number_of_rva_and_sizes);
 }
 
-void ppelib_header_print(const header_t *header) {
-	ppelib_header_fprint(stdout, header);
+void header_print(const header_t *header) {
+	header_fprint(stdout, header);
 }

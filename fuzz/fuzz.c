@@ -28,7 +28,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buffer, size_t size) {
 		goto out;
 	}
 
-	ppelib_header_print(&pe->header);
+	header_print(&pe->header);
 
 	size_t len = ppelib_write_to_buffer(pe, NULL, 0);
 	if (ppelib_error()) {

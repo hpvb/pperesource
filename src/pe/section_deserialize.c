@@ -26,7 +26,7 @@
 
 #include "section_private.h"
 
-size_t ppelib_section_deserialize(const uint8_t *buffer, const size_t size, const size_t offset, section_t *section) {
+size_t section_deserialize(const uint8_t *buffer, const size_t size, const size_t offset, section_t *section) {
 	ppelib_reset_error();
 
 	if (offset + 40 > size) {

@@ -26,7 +26,7 @@
 
 #include "section_private.h"
 
-size_t ppelib_section_serialize(const section_t *section, uint8_t *buffer, const size_t offset) {
+size_t section_serialize(const section_t *section, uint8_t *buffer, const size_t offset) {
 	ppelib_reset_error();
 
 	if (!section) {

@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "ppe_error.h"
 
-void ppelib_data_directory_fprint(FILE *stream, const data_directory_t *data_directory) {
+void data_directory_fprint(FILE *stream, const data_directory_t *data_directory) {
 	ppelib_reset_error();
 
 	fprintf(stream, "Type: %s, ", map_lookup(data_directory->id, ppelib_data_directories_map));
@@ -40,6 +40,6 @@ void ppelib_data_directory_fprint(FILE *stream, const data_directory_t *data_dir
 	fprintf(stream, "Size: %zi\n", data_directory->size);
 }
 
-void ppelib_data_directory_print(const data_directory_t *data_directory) {
-	ppelib_data_directory_fprint(stdout, data_directory);
+void data_directory_print(const data_directory_t *data_directory) {
+	data_directory_fprint(stdout, data_directory);
 }

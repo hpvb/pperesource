@@ -22,7 +22,7 @@
 #include "ppe_error.h"
 #include "utils.h"
 
-size_t ppelib_header_deserialize(const uint8_t *buffer, const size_t size,
+size_t header_deserialize(const uint8_t *buffer, const size_t size,
 		const size_t offset, header_t *header) {
 	ppelib_reset_error();
 
