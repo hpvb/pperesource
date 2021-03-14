@@ -26,7 +26,7 @@
 
 #include "section_private.h"
 
-EXPORT_SYM const section_t *ppelib_section_get(ppelib_file_t *pe, uint16_t section_index) {
+const section_t *ppelib_section_get(ppelib_file_t *pe, uint16_t section_index) {
 	ppelib_reset_error();
 
 	if (section_index > pe->header.number_of_sections) {

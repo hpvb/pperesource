@@ -109,7 +109,7 @@ uint32_t get_machine_page_size(enum ppelib_machine_type machine) {
 	}
 }
 
-EXPORT_SYM const char *map_lookup(uint32_t value, const ppelib_map_entry_t *map) {
+const char *map_lookup(uint32_t value, const ppelib_map_entry_t *map) {
 	const ppelib_map_entry_t *m = map;
 	while (m->string) {
 		if (m->value == value) {

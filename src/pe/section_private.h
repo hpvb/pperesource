@@ -47,9 +47,9 @@ typedef struct section {
 	size_t contents_size;
 } section_t;
 
-EXPORT_SYM size_t ppelib_section_serialize(const section_t *section, uint8_t *buffer, const size_t offset);
-EXPORT_SYM size_t ppelib_section_deserialize(const uint8_t *buffer, const size_t size, const size_t offset, section_t *section);
-EXPORT_SYM void ppelib_section_fprint(FILE *stream, const section_t *section);
-EXPORT_SYM void ppelib_section_print(const section_t *section);
+size_t ppelib_section_serialize(const section_t *section, uint8_t *buffer, const size_t offset);
+size_t ppelib_section_deserialize(const uint8_t *buffer, const size_t size, const size_t offset, section_t *section);
+void ppelib_section_fprint(FILE *stream, const section_t *section);
+void ppelib_section_print(const section_t *section);
 
 #endif /* PPELIB_SECTION_PRIVATE_H_  */

@@ -75,14 +75,14 @@ typedef struct header {
 	uint32_t number_of_rva_and_sizes;
 } header_t;
 
-EXPORT_SYM size_t ppelib_header_serialize(const header_t *header,
+size_t ppelib_header_serialize(const header_t *header,
 		uint8_t *buffer, const size_t offset);
-EXPORT_SYM size_t ppelib_header_deserialize(const uint8_t *buffer,
+size_t ppelib_header_deserialize(const uint8_t *buffer,
 		const size_t size,
 		const size_t offset,
 		header_t *header);
-EXPORT_SYM void ppelib_header_fprint(FILE *stream, const header_t *header);
-EXPORT_SYM void ppelib_header_print(const header_t *header);
-EXPORT_SYM uint8_t ppelib_header_is_null(const header_t *header);
+void ppelib_header_fprint(FILE *stream, const header_t *header);
+void ppelib_header_print(const header_t *header);
+uint8_t ppelib_header_is_null(const header_t *header);
 
 #endif /* PPELIB_HEADER_PRIVATE_H_  */

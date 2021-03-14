@@ -29,7 +29,7 @@
 #include "ppelib_internal.h"
 #include "section_private.h"
 
-EXPORT_SYM void ppelib_section_fprint(FILE *stream, const section_t *section) {
+void ppelib_section_fprint(FILE *stream, const section_t *section) {
 	ppelib_reset_error();
 
 	if (!section) {
@@ -57,6 +57,6 @@ EXPORT_SYM void ppelib_section_fprint(FILE *stream, const section_t *section) {
 	fprintf(stream, "\n");
 }
 
-EXPORT_SYM void ppelib_section_print(const section_t *section) {
+void ppelib_section_print(const section_t *section) {
 	ppelib_section_fprint(stdout, section);
 }
