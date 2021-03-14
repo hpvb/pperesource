@@ -26,6 +26,7 @@ typedef struct data_directory data_directory_t;
 
 typedef struct ppelib_file {
 	size_t start_of_section_va;
+	size_t pe_header_offset;
 
 	size_t start_of_section_data;
 	size_t end_of_section_data;
@@ -51,4 +52,7 @@ typedef struct ppelib_file {
 EXPORT_SYM void ppelib_destroy(ppelib_file_t *pe);
 EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_t size);
 EXPORT_SYM ppelib_file_t *ppelib_create_from_file(const char *filename);
+EXPORT_SYM size_t ppelib_write_to_buffer(const ppelib_file_t *pe, uint8_t *buffer, size_t buf_size);
+EXPORT_SYM size_t ppelib_write_to_file(const ppelib_file_t *pe, const char *filename);
+
 #endif /* PPELIB_MAIN_H_ */

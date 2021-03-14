@@ -30,20 +30,20 @@ int LLVMFuzzerTestOneInput(const uint8_t *buffer, size_t size) {
 
 	ppelib_header_print(&pe->header);
 
-	//	size_t len = ppelib_write_to_buffer(pe, NULL, 0);
-	//	if (ppelib_error()) {
-	//		printf("PPELib-Error: %s\n", ppelib_error());
-	//		goto out;
-	//	}
-	//
-	//	uint8_t *b = malloc(len);
-	//	ppelib_write_to_buffer(pe, b, len);
-	//	pe2 = ppelib_create_from_buffer(b, len);
-	//	free(b);
-	//	if (ppelib_error()) {
-	//		printf("PPELib-Error: %s\n", ppelib_error());
-	//		goto out;
-	//	}
+	size_t len = ppelib_write_to_buffer(pe, NULL, 0);
+	if (ppelib_error()) {
+		printf("PPELib-Error: %s\n", ppelib_error());
+		goto out;
+	}
+
+	uint8_t *b = malloc(len);
+	ppelib_write_to_buffer(pe, b, len);
+	pe2 = ppelib_create_from_buffer(b, len);
+	free(b);
+	if (ppelib_error()) {
+		printf("PPELib-Error: %s\n", ppelib_error());
+		goto out;
+	}
 
 out:
 	ppelib_destroy(pe);

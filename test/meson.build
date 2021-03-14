@@ -3,3 +3,9 @@ print = executable(
 	[ 'print.c', pperesource_sources],
 	include_directories: inc,
 )
+
+roundtrip = executable(
+	'roundtrip',
+	[ 'roundtrip.c', pperesource_sources],
+	include_directories: inc,
+)

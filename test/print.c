@@ -36,21 +36,17 @@ int main(int argc, char *argv[]) {
 	}
 
 	ppelib_header_print(&pe->header);
+	printf("\nDirectories\n");
+	for (uint32_t i = 0; i < pe->header.number_of_rva_and_sizes; ++i) {
+		ppelib_data_directory_print(&pe->data_directories[i]);
+	}
+	printf("\n");
 
-	//	size_t len = ppelib_write_to_buffer(pe, NULL, 0);
-	//	if (ppelib_error()) {
-	//		printf("PPELib-Error: %s\n", ppelib_error());
-	//		goto out;
-	//	}
-	//
-	//	uint8_t *b = malloc(len);
-	//	ppelib_write_to_buffer(pe, b, len);
-	//	pe2 = ppelib_create_from_buffer(b, len);
-	//	free(b);
-	//	if (ppelib_error()) {
-	//		printf("PPELib-Error: %s\n", ppelib_error());
-	//		goto out;
-	//	}
+	printf("\nSections\n");
+	for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
+		ppelib_section_print(pe->sections[i]);
+		printf("\n");
+	}
 
 out:
 	ppelib_destroy(pe);

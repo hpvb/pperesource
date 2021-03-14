@@ -82,14 +82,14 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 		goto out;
 	}
 
-	size_t pe_header_offset = read_uint32_t(buffer + 0x3C);
+	pe->pe_header_offset = read_uint32_t(buffer + 0x3C);
 
-	if (size < pe_header_offset + sizeof(uint32_t)) {
+	if (size < pe->pe_header_offset + sizeof(uint32_t)) {
 		ppelib_set_error("Not a PE file (file too small)");
 		goto out;
 	}
 
-	pe->stub_size = pe_header_offset;
+	pe->stub_size = pe->pe_header_offset;
 	pe->stub = malloc(pe->stub_size);
 	if (!pe->stub) {
 		ppelib_set_error("Couldn't allocate DOS stub");
@@ -97,13 +97,13 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 	}
 	memcpy(pe->stub, buffer, pe->stub_size);
 
-	uint32_t signature = read_uint32_t(buffer + pe_header_offset);
+	uint32_t signature = read_uint32_t(buffer + pe->pe_header_offset);
 	if (signature != PE_SIGNATURE) {
 		ppelib_set_error("Not a PE file (PE00 signature missing)");
 		goto out;
 	}
 
-	size_t header_offset = pe_header_offset + 4;
+	size_t header_offset = pe->pe_header_offset + 4;
 
 	size_t header_size = ppelib_header_deserialize(buffer, size, header_offset, &pe->header);
 	if (ppelib_error_peek()) {
@@ -179,7 +179,7 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 
 		size_t data_size = MIN(section->virtual_size, section->size_of_raw_data);
 
-		if (section->pointer_to_raw_data + data_size > size || section->pointer_to_raw_data > size || data_size > size) {
+		if (section->pointer_to_raw_data + data_size > size || section->pointer_to_raw_data > size || data_size > size || section->size_of_raw_data > size) {
 			ppelib_set_error("Section data outside of file");
 			goto out;
 		}
@@ -313,8 +313,7 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_file(const char *filename) {
 	return retval;
 }
 
-#if 0
-EXPORT_SYM size_t ppelib_write_to_buffer(ppelib_file_t *pe, uint8_t *buffer, size_t buf_size) {
+EXPORT_SYM size_t ppelib_write_to_buffer(const ppelib_file_t *pe, uint8_t *buffer, size_t buf_size) {
 	size_t size = 0;
 
 	//	size_t dos_stub_size = pe->dos_header.stub_size;
@@ -324,7 +323,7 @@ EXPORT_SYM size_t ppelib_write_to_buffer(ppelib_file_t *pe, uint8_t *buffer, siz
 
 	size_t section_size = 0;
 
-	size_t pe_header_offset = pe->dos_header.pe_header_offset + 4;
+	size_t pe_header_offset = pe->pe_header_offset + 4;
 	size_t section_header_offset = pe_header_offset + COFF_HEADER_SIZE + pe->header.size_of_optional_header;
 
 	uint32_t file_alignment = MAX(pe->header.file_alignment, 512);
@@ -339,7 +338,7 @@ EXPORT_SYM size_t ppelib_write_to_buffer(ppelib_file_t *pe, uint8_t *buffer, siz
 	}
 
 	size += 2;
-	size += pe->dos_header.pe_header_offset;
+	size += pe->pe_header_offset;
 	size += 4;
 	size += pe->header.size_of_optional_header;
 	size += section_header_size;
@@ -355,7 +354,7 @@ EXPORT_SYM size_t ppelib_write_to_buffer(ppelib_file_t *pe, uint8_t *buffer, siz
 
 	size += pe->overlay_size;
 
-	printf("dos_header_size: %i\n", DOS_HEADER_SIZE);
+	printf("dos_header_size: %zi\n", pe->stub_size);
 	//printf("dos_stub_size: %zi\n", dos_stub_size);
 	printf("header_size: %zi\n", header_size);
 	//printf("data_tables_size: %zi\n", data_tables_size);
@@ -374,13 +373,8 @@ EXPORT_SYM size_t ppelib_write_to_buffer(ppelib_file_t *pe, uint8_t *buffer, siz
 	}
 
 	memset(buffer, 0, size);
-
-	write_uint16_t(buffer, MZ_SIGNATURE);
-	ppelib_dos_header_serialize(&pe->dos_header, buffer, 2);
-	if (pe->dos_header.stub_size) {
-		memcpy(buffer + 2 + DOS_HEADER_SIZE, pe->dos_header.stub, pe->dos_header.stub_size);
-	}
-	write_uint32_t(buffer + pe->dos_header.pe_header_offset, PE_SIGNATURE);
+	memcpy(buffer, pe->stub, pe->stub_size);
+	write_uint32_t(buffer + pe->pe_header_offset, PE_SIGNATURE);
 	ppelib_header_serialize(&pe->header, buffer, pe_header_offset);
 
 	size_t offset = pe_header_offset + header_size;
@@ -421,7 +415,7 @@ EXPORT_SYM size_t ppelib_write_to_buffer(ppelib_file_t *pe, uint8_t *buffer, siz
 	return size;
 }
 
-EXPORT_SYM size_t ppelib_write_to_file(ppelib_file_t *pe, const char *filename) {
+EXPORT_SYM size_t ppelib_write_to_file(const ppelib_file_t *pe, const char *filename) {
 	ppelib_reset_error();
 
 	FILE *f = fopen(filename, "wb");
@@ -460,6 +454,8 @@ EXPORT_SYM size_t ppelib_write_to_file(ppelib_file_t *pe, const char *filename) 
 
 	return written;
 }
+
+#if 0
 
 void recalculate_sections(ppelib_file_t *pe) {
 	uint32_t base_of_code = 0;

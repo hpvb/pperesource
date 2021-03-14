@@ -15,31 +15,33 @@
  * limitations under the License.
  */
 
-#ifndef PPELIB_DATA_DIRECTORY_PRIVATE_H_
-#define PPELIB_DATA_DIRECTORY_PRIVATE_H_
+#include <stdlib.h>
 
-#include <inttypes.h>
-#include <stddef.h>
-#include <stdio.h>
+#include "main.h"
+#include "ppe_error.h"
 
-#include "pe/constants.h"
+int main(int argc, char *argv[]) {
+	int retval = 0;
 
-#include "section_private.h"
+	if (argc != 3) {
+		printf("Usage: %s <infile> <outfile>\n", argv[0]);
+		return 1;
+	}
 
-#include "platform.h"
-#include "utils.h"
+	ppelib_file_t *pe = ppelib_create_from_file(argv[1]);
+	if (ppelib_error()) {
+		printf("PPELib-Error: %s\n", ppelib_error());
+		retval = 1;
+		goto out;
+	}
 
-typedef struct ppelib_file ppelib_file_t;
+	ppelib_write_to_file(pe, argv[2]);
+	if (ppelib_error()) {
+		printf("PPELib-Error: %s\n", ppelib_error());
+		goto out;
+	}
 
-typedef struct data_directory {
-	section_t *section;
-
-	size_t offset;
-	size_t size;
-	uint32_t id;
-} data_directory_t;
-
-EXPORT_SYM void ppelib_data_directory_print(const data_directory_t *data_directory);
-EXPORT_SYM void ppelib_data_directory_fprint(FILE *stream, const data_directory_t *data_directory);
-
-#endif /* PPELIB_DATA_DIRECTORY_PRIVATE_H_ */
+out:
+	ppelib_destroy(pe);
+	return retval; // Non-zero return values are reserved for future use.
+}
