@@ -51,6 +51,7 @@ typedef struct resource_table {
 } resource_table_t;
 
 size_t resource_table_deserialize(const section_t *section, const size_t offset, resource_table_t *resource_table);
+size_t resource_table_serialize(const section_t *section, const size_t offset, resource_table_t *resource_table);
 void resource_table_print(resource_table_t *resource_table);
 
 #endif /* SRC_RESOURCES_RESOURCE_H_ */

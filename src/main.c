@@ -268,6 +268,7 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 
 		if (section) {
 			resource_table_deserialize(section, offset, &pe->resource_table);
+			resource_table_serialize(section, offset, &pe->resource_table);
 		}
 	}
 

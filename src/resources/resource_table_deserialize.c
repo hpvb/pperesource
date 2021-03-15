@@ -25,16 +25,16 @@
 #include "ppe_error.h"
 #include "resources/resource.h"
 
-thread_local size_t rscs_base;
+thread_local static size_t rscs_base;
 
-thread_local uint32_t characteristics;
-thread_local uint32_t date_time_stamp;
-thread_local uint16_t major_version;
-thread_local uint16_t minor_version;
+thread_local static uint32_t characteristics;
+thread_local static uint32_t date_time_stamp;
+thread_local static uint16_t major_version;
+thread_local static uint16_t minor_version;
 
-thread_local uint32_t type;
-thread_local uint32_t name;
-thread_local uint32_t language;
+thread_local static uint32_t type;
+thread_local static uint32_t name;
+thread_local static uint32_t language;
 
 size_t parse_resource_table(const uint8_t *buffer, const size_t size, const size_t offset, resource_table_t *resource_table, uint32_t level);
 
