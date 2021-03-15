@@ -65,4 +65,8 @@ size_t resource_table_serialize(const section_t *section, const size_t offset, r
 void resource_table_print(resource_table_t *resource_table);
 void update_resource_table(ppelib_file_t *pe);
 
+size_t get_resource_by_type_name(wchar_t *type);
+size_t get_resource_by_type_id(const resource_table_t *resource_table, uint32_t type, resource_t **resource);
+
+void versioninfo_deserialize(const uint8_t *buffer, size_t size, size_t offset);
 #endif /* SRC_RESOURCES_RESOURCE_H_ */

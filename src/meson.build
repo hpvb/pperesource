@@ -21,10 +21,12 @@ pperesource_sources = files([
 	'pe/section_print.c',
 	'pe/section_serialize.c',
 	'ppe_error.c',
+	'resources/resource_table.c',
 	'resources/resource_table_deserialize.c',
 	'resources/resource_table_print.c',
 	'resources/resource_table_serialize.c',
 	'resources/string_table.c',
+	'resources/versioninfo.c',
 	'utils.c',
 ])
 

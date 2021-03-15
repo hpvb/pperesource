@@ -275,6 +275,11 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 		}
 	}
 
+	resource_t *res = NULL;
+	size_t nmb = get_resource_by_type_id(&pe->resource_table, RT_VERSION, &res);
+	if (nmb == 1) {
+		versioninfo_deserialize(res->data, res->size, 0);
+	}
 out:
 	if (ppelib_error_peek()) {
 		ppelib_destroy(pe);
