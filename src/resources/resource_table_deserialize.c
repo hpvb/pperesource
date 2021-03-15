@@ -27,10 +27,15 @@
 
 thread_local static size_t rscs_base;
 
-thread_local static uint32_t characteristics;
-thread_local static uint32_t date_time_stamp;
-thread_local static uint16_t major_version;
-thread_local static uint16_t minor_version;
+thread_local static uint32_t type_characteristics;
+thread_local static uint32_t type_date_time_stamp;
+thread_local static uint16_t type_major_version;
+thread_local static uint16_t type_minor_version;
+
+thread_local static uint32_t name_characteristics;
+thread_local static uint32_t name_date_time_stamp;
+thread_local static uint16_t name_major_version;
+thread_local static uint16_t name_minor_version;
 
 thread_local static uint32_t type;
 thread_local static uint32_t name;
@@ -120,10 +125,15 @@ size_t parse_resource(const uint8_t *buffer, const size_t size, const size_t off
 
 	resource_t *resource = resource_table->resources[resource_table->size - 1];
 
-	resource->characteristics = characteristics;
-	resource->date_time_stamp = date_time_stamp;
-	resource->major_version = major_version;
-	resource->minor_version = minor_version;
+	resource->type_characteristics = type_characteristics;
+	resource->type_date_time_stamp = type_date_time_stamp;
+	resource->type_major_version = type_major_version;
+	resource->type_minor_version = type_minor_version;
+
+	resource->name_characteristics = name_characteristics;
+	resource->name_date_time_stamp = name_date_time_stamp;
+	resource->name_major_version = name_major_version;
+	resource->name_minor_version = name_minor_version;
 
 	if (type_s) {
 		resource->type = type_s;
@@ -196,13 +206,37 @@ size_t parse_resource_table(const uint8_t *buffer, const size_t size, const size
 		return 0;
 	}
 
-	characteristics = read_uint32_t(buffer + offset + 0);
-	date_time_stamp = read_uint32_t(buffer + offset + 4);
-	major_version = read_uint16_t(buffer + offset + 8);
-	minor_version = read_uint16_t(buffer + offset + 10);
+	uint32_t characteristics = read_uint32_t(buffer + offset + 0);
+	uint32_t date_time_stamp = read_uint32_t(buffer + offset + 4);
+	uint16_t major_version = read_uint16_t(buffer + offset + 8);
+	uint16_t minor_version = read_uint16_t(buffer + offset + 10);
 
 	uint16_t number_of_name_entries = read_uint16_t(buffer + offset + 12);
 	uint16_t number_of_id_entries = read_uint16_t(buffer + offset + 14);
+
+	switch (level) {
+	case 0:
+		resource_table->characteristics = characteristics;
+		resource_table->date_time_stamp = date_time_stamp;
+		resource_table->major_version = major_version;
+		resource_table->minor_version = minor_version;
+		break;
+	case 1:
+		type_characteristics = characteristics;
+		type_date_time_stamp = date_time_stamp;
+		type_major_version = major_version;
+		type_minor_version = minor_version;
+		break;
+	case 2:
+		name_characteristics = characteristics;
+		name_date_time_stamp = date_time_stamp;
+		name_major_version = major_version;
+		name_minor_version = minor_version;
+		break;
+	default:
+		ppelib_set_error("Unexpected directory depth");
+		return 0;
+	}
 
 	size_t entry_offset = offset + 16;
 

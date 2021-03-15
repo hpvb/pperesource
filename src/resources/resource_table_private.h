@@ -18,4 +18,36 @@
 #ifndef SRC_RESOURCES_RESOURCE_TABLE_PRIVATE_H_
 #define SRC_RESOURCES_RESOURCE_TABLE_PRIVATE_H_
 
+#include <inttypes.h>
+
+typedef struct resource_directory_table resource_directory_table_t;
+
+typedef struct resource_data_entry {
+	uint32_t data_rva;
+	uint32_t data_size;
+	uint32_t codepage;
+	uint32_t reserved;
+
+	uint8_t *data;
+} resource_data_entry_t;
+
+typedef struct resource_directory_entry {
+	uint32_t name_id;
+	uint32_t entry_offset;
+
+	const wchar_t *name;
+	resource_directory_table_t *directory_table;
+	resource_data_entry_t *data_entry;
+} resource_directory_entry_t;
+
+typedef struct resource_directory_table {
+	uint32_t characteristics;
+	uint32_t time_date_stamp;
+	uint16_t major_version;
+	uint16_t minor_version;
+
+	size_t number_of_entries;
+	resource_directory_entry_t *entries;
+} resource_directory_table_t;
+
 #endif /* SRC_RESOURCES_RESOURCE_TABLE_PRIVATE_H_ */

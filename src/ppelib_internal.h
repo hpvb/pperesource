@@ -30,5 +30,9 @@ section_t *section_find_by_physical_address(ppelib_file_t *pe, size_t address);
 section_t *section_find_by_virtual_address(ppelib_file_t *pe, size_t va);
 size_t section_rva_to_offset(const section_t *section, size_t rva);
 void *section_rva_to_pointer(const section_t *section, size_t rva);
+uint16_t section_create(ppelib_file_t *pe, char name[9], uint32_t virtual_size, uint32_t raw_size,
+		uint32_t characteristics, uint8_t *data);
+void section_resize(ppelib_file_t *pe, uint16_t section_index, size_t size);
+uint16_t section_find_index(ppelib_file_t *pe, section_t *section);
 
 #endif /* PPELIB_INTERNAL_H_ */

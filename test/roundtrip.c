@@ -35,6 +35,7 @@ int main(int argc, char *argv[]) {
 		goto out;
 	}
 
+	update_resource_table(pe);
 	ppelib_write_to_file(pe, argv[2]);
 	if (ppelib_error()) {
 		printf("PPELib-Error: %s\n", ppelib_error());

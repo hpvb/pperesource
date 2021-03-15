@@ -92,7 +92,7 @@ uint16_t section_create(ppelib_file_t *pe, char name[9], uint32_t virtual_size, 
 	}
 
 	void *old_ptr = pe->sections;
-	pe->sections = realloc(pe->sections, pe->header.number_of_sections + 1 * sizeof(void *));
+	pe->sections = realloc(pe->sections, (pe->header.number_of_sections + 1) * sizeof(void *));
 	if (!pe->sections) {
 		pe->sections = old_ptr;
 		ppelib_set_error("Couldn't allocate section");
@@ -122,16 +122,14 @@ uint16_t section_create(ppelib_file_t *pe, char name[9], uint32_t virtual_size, 
 	}
 
 	pe->header.number_of_sections++;
-	memcpy(section->name, name, 8);
+	strcpy(section->name, name);
 	section->name[8] = 0;
 
 	section->virtual_size = virtual_size;
 	section->size_of_raw_data = raw_size;
 	section->characteristics = characteristics;
 
-	//ppelib_recalculate(pe);
-
-	return pe->header.number_of_sections--;
+	return pe->header.number_of_sections - 1;
 }
 
 void section_excise(ppelib_file_t *pe, uint16_t section_index, size_t start, size_t end) {
@@ -165,7 +163,6 @@ void section_excise(ppelib_file_t *pe, uint16_t section_index, size_t start, siz
 	}
 
 	section->contents_size -= (end - start);
-	//ppelib_recalculate(pe);
 }
 
 void section_insert_capacity(ppelib_file_t *pe, uint16_t section_index, size_t size, size_t offset) {
@@ -206,7 +203,6 @@ void section_insert_capacity(ppelib_file_t *pe, uint16_t section_index, size_t s
 	}
 
 	section->contents_size += size;
-	//ppelib_recalculate(pe);
 }
 
 void section_resize(ppelib_file_t *pe, uint16_t section_index, size_t size) {
@@ -242,7 +238,6 @@ void section_resize(ppelib_file_t *pe, uint16_t section_index, size_t size) {
 	}
 
 	section->contents_size = size;
-	//ppelib_recalculate(pe);
 }
 
 uint16_t section_find_index(ppelib_file_t *pe, section_t *section) {

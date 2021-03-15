@@ -24,6 +24,7 @@ pperesource_sources = files([
 	'resources/resource_table_deserialize.c',
 	'resources/resource_table_print.c',
 	'resources/resource_table_serialize.c',
+	'resources/string_table.c',
 	'utils.c',
 ])
 

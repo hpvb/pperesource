@@ -268,7 +268,10 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 
 		if (section) {
 			resource_table_deserialize(section, offset, &pe->resource_table);
-			resource_table_serialize(section, offset, &pe->resource_table);
+			if (ppelib_error_peek()) {
+				printf("Resource parse error: %s\n", ppelib_error());
+			}
+			ppelib_reset_error();
 		}
 	}
 
@@ -336,7 +339,6 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_file(const char *filename) {
 EXPORT_SYM size_t ppelib_write_to_buffer(const ppelib_file_t *pe, uint8_t *buffer, size_t buf_size) {
 	size_t size = 0;
 
-	//	size_t dos_stub_size = pe->dos_header.stub_size;
 	size_t header_size = header_serialize(&pe->header, NULL, 0);
 	size_t data_tables_size = pe->header.number_of_rva_and_sizes * DATA_DIRECTORY_SIZE;
 	size_t section_header_size = pe->header.number_of_sections * SECTION_SIZE;
@@ -374,14 +376,14 @@ EXPORT_SYM size_t ppelib_write_to_buffer(const ppelib_file_t *pe, uint8_t *buffe
 
 	size += pe->overlay_size;
 
-	printf("dos_header_size: %zi\n", pe->stub_size);
-	//printf("dos_stub_size: %zi\n", dos_stub_size);
-	printf("header_size: %zi\n", header_size);
-	//printf("data_tables_size: %zi\n", data_tables_size);
-	printf("section_header_size: %zi\n", section_header_size);
-	printf("section_size: %zi\n", section_size);
-	printf("overlay_size: %zi\n", pe->overlay_size);
-	printf("total: %zi\n", size);
+	//	printf("dos_header_size: %zi\n", pe->stub_size);
+	//	//printf("dos_stub_size: %zi\n", dos_stub_size);
+	//	printf("header_size: %zi\n", header_size);
+	//	//printf("data_tables_size: %zi\n", data_tables_size);
+	//	printf("section_header_size: %zi\n", section_header_size);
+	//	printf("section_size: %zi\n", section_size);
+	//	printf("overlay_size: %zi\n", pe->overlay_size);
+	//	printf("total: %zi\n", size);
 
 	if (!buffer) {
 		return size;
@@ -475,8 +477,6 @@ EXPORT_SYM size_t ppelib_write_to_file(const ppelib_file_t *pe, const char *file
 	return written;
 }
 
-#if 0
-
 void recalculate_sections(ppelib_file_t *pe) {
 	uint32_t base_of_code = 0;
 	uint32_t base_of_data = 0;
@@ -487,25 +487,42 @@ void recalculate_sections(ppelib_file_t *pe) {
 	uint32_t next_section_virtual = (uint32_t)pe->start_of_section_va;
 	uint32_t next_section_physical = (uint32_t)pe->start_of_section_data;
 
-	uint32_t machine_page_size = get_machine_page_size(pe->header.machine);
 	next_section_virtual = MAX(next_section_virtual, next_section_physical);
 
-	char modified = 0;
+	section_t *resource_section = pe->data_directories[DIR_RESOURCE_TABLE].section;
+	if (resource_section) {
+		uint16_t section_index = section_find_index(pe, resource_section);
+		size_t end_of_section_va = 0;
+
+		for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
+			section_t *section = pe->sections[i];
+			end_of_section_va = MAX(end_of_section_va, section->virtual_address + section->virtual_size);
+		}
+
+		if (section_index < pe->header.number_of_sections - 1) {
+			section_t *next_section = pe->sections[section_index + 1];
+			size_t end_offset = resource_section->virtual_address + resource_section->virtual_size;
+
+			if (end_offset > next_section->virtual_address) {
+				resource_section->virtual_address = (uint32_t)TO_NEAREST(end_of_section_va, pe->header.section_alignment);
+			}
+		}
+
+		if (section_index == pe->header.number_of_sections - 1) {
+			if (!resource_section->virtual_address) {
+				resource_section->virtual_address = (uint32_t)TO_NEAREST(end_of_section_va, pe->header.section_alignment);
+			}
+		}
+
+		resource_section->virtual_size = (uint32_t)resource_section->contents_size;
+		resource_section->size_of_raw_data = TO_NEAREST((uint32_t)resource_section->contents_size, pe->header.file_alignment);
+	}
 
 	for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
 		section_t *section = pe->sections[i];
 
-		if (section->modified) {
-			modified = 1;
-			//section->virtual_size = (uint32_t) (section->contents_size + section->virtual_padding);
-			if (section->contents_size) {
-				section->size_of_raw_data = TO_NEAREST((uint32_t)section->contents_size, pe->header.file_alignment);
-			}
-		}
-
 		// SizeOfRawData can't be more than the aligned amount of the data we actually have
 		if (section->size_of_raw_data > TO_NEAREST(section->contents_size, pe->header.file_alignment)) {
-			modified = 1;
 			section->size_of_raw_data = TO_NEAREST((uint32_t)section->contents_size, pe->header.file_alignment);
 		}
 
@@ -516,21 +533,6 @@ void recalculate_sections(ppelib_file_t *pe) {
 
 				if (section->pointer_to_raw_data != next_section_physical_aligned) {
 					section->pointer_to_raw_data = next_section_physical_aligned;
-					modified = 1;
-				}
-			}
-		}
-
-		if (section->virtual_size) {
-			if (section->virtual_address != next_section_virtual) {
-				section->virtual_address = next_section_virtual;
-				modified = 1;
-			}
-
-			if (machine_page_size > pe->header.section_alignment) {
-				if (section->virtual_address != section->pointer_to_raw_data) {
-					section->virtual_address = section->pointer_to_raw_data;
-					modified = 1;
 				}
 			}
 		}
@@ -577,36 +579,82 @@ void recalculate_sections(ppelib_file_t *pe) {
 
 		pe->end_of_section_data = MAX(pe->end_of_section_data,
 				section->pointer_to_raw_data + section->size_of_raw_data);
-
-		section->modified = 0;
 	}
 
-	if (modified) {
-		// PE files with only data can have this set to garbage. Might as well just keep it.
-		if (size_of_code) {
-			pe->header.base_of_code = base_of_code;
-		}
+	// PE files with only data can have this set to garbage. Might as well just keep it.
+	if (size_of_code) {
+		pe->header.base_of_code = base_of_code;
+	}
 
-		// The actual value of these of PE images in the wild varies a lot.
-		// There doesn't appear to be an actual correct way of calculating these
+	// The actual value of these of PE images in the wild varies a lot.
+	// There doesn't appear to be an actual correct way of calculating these
 
-		pe->header.base_of_data = base_of_data;
-		pe->header.size_of_initialized_data = TO_NEAREST(size_of_initialized_data, pe->header.file_alignment);
-		pe->header.size_of_uninitialized_data = TO_NEAREST(size_of_uninitialized_data, pe->header.file_alignment);
-		pe->header.size_of_code = TO_NEAREST(size_of_code, pe->header.file_alignment);
-		pe->header.size_of_image = next_section_virtual;
-		if (pe->entrypoint_section) {
-			pe->header.address_of_entry_point = pe->entrypoint_section->virtual_address + (uint32_t)pe->entrypoint_offset;
-		}
+	pe->header.base_of_data = base_of_data;
+	pe->header.size_of_initialized_data = TO_NEAREST(size_of_initialized_data, pe->header.file_alignment);
+	pe->header.size_of_uninitialized_data = TO_NEAREST(size_of_uninitialized_data, pe->header.file_alignment);
+	pe->header.size_of_code = TO_NEAREST(size_of_code, pe->header.file_alignment);
+	pe->header.size_of_image = next_section_virtual;
+	if (pe->entrypoint_section) {
+		pe->header.address_of_entry_point = pe->entrypoint_section->virtual_address + (uint32_t)pe->entrypoint_offset;
 	}
 }
 
+section_t *create_rscs_section(ppelib_file_t *pe, size_t resource_table_size) {
+	section_t *section = NULL;
+
+	uint16_t section_index = section_create(pe, ".rscs", 0, (uint32_t)resource_table_size,
+			IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ, NULL);
+	section = pe->sections[section_index];
+
+	pe->data_directories[DIR_RESOURCE_TABLE].section = section;
+	pe->data_directories[DIR_RESOURCE_TABLE].offset = 0;
+	pe->data_directories[DIR_RESOURCE_TABLE].size = resource_table_size;
+
+	return section;
+}
+
 void recalculate_header(ppelib_file_t *pe) {
+	size_t resource_table_size = resource_table_serialize(NULL, 0, &pe->resource_table);
+	section_t *resource_section = NULL;
+	size_t resource_offset = 0;
+	size_t resource_size = 0;
+
+	if (pe->header.number_of_rva_and_sizes > DIR_RESOURCE_TABLE) {
+		resource_section = pe->data_directories[DIR_RESOURCE_TABLE].section;
+		resource_offset = pe->data_directories[DIR_RESOURCE_TABLE].offset;
+		resource_size = pe->data_directories[DIR_RESOURCE_TABLE].size;
+	} else {
+		pe->data_directories = realloc(pe->data_directories, sizeof(data_directory_t) * 16);
+		memset(pe->data_directories + pe->header.number_of_rva_and_sizes, 0, sizeof(data_directory_t) * (16 - pe->header.number_of_rva_and_sizes));
+		pe->header.number_of_rva_and_sizes = 16;
+	}
+
+	if (resource_table_size) {
+		if (!resource_section) {
+			resource_section = create_rscs_section(pe, resource_table_size);
+		} else {
+			uint16_t section_index = section_find_index(pe, resource_section);
+
+			if (resource_section->contents_size == resource_size && !resource_offset) {
+				// Old rscs only had our resources in it
+				section_resize(pe, section_index, resource_table_size);
+			} else {
+				// Old rscs had more stuff in it just make a new one
+				resource_section = create_rscs_section(pe, resource_table_size);
+				resource_offset = 0;
+			}
+		}
+
+		pe->data_directories[DIR_RESOURCE_TABLE].section = resource_section;
+		pe->data_directories[DIR_RESOURCE_TABLE].offset = resource_offset;
+		pe->data_directories[DIR_RESOURCE_TABLE].size = resource_table_size;
+	}
+
 	uint16_t header_size = (uint16_t)header_serialize(&pe->header, NULL, 0);
 	size_t data_tables_size = pe->header.number_of_rva_and_sizes * DATA_DIRECTORY_SIZE;
 	size_t section_header_size = pe->header.number_of_sections * SECTION_SIZE;
 
-	size_t total_header_size = pe->dos_header.pe_header_offset + 4 + header_size + data_tables_size + section_header_size;
+	size_t total_header_size = pe->pe_header_offset + 4 + header_size + data_tables_size + section_header_size;
 
 	if (!pe->header.file_alignment || pe->header.file_alignment > UINT16_MAX) {
 		pe->header.file_alignment = 512;
@@ -630,7 +678,6 @@ void recalculate_header(ppelib_file_t *pe) {
 		pe->header.size_of_headers = (uint32_t)(TO_NEAREST(total_header_size, pe->header.file_alignment));
 	}
 
-	uint16_t old_size_of_optional_header = pe->header.size_of_optional_header;
 	pe->header.size_of_optional_header = (uint16_t)data_tables_size;
 
 	if (pe->header.magic == PE32_MAGIC) {
@@ -641,51 +688,14 @@ void recalculate_header(ppelib_file_t *pe) {
 		pe->header.size_of_optional_header += PEPLUS_OPTIONAL_HEADER_SIZE;
 	}
 
-	size_t old_start_of_section_data = pe->start_of_section_data;
 	pe->start_of_section_data = MAX(pe->start_of_section_data, pe->header.size_of_headers);
-
-	if (old_size_of_optional_header != pe->header.size_of_optional_header || old_start_of_section_data != pe->start_of_section_data) {
-		recalculate_sections(pe);
-	}
-
-	pe->header.modified = 0;
 }
 
-void recalculate_dos_header(ppelib_file_t *pe) {
-	// If anything changed in the DOS area we must update all PE headers
-	// since we can't preserve overlapping data here.
-
-	if (pe->dos_header.modified) {
-		recalculate_header(pe);
-	}
-
-	pe->dos_header.modified = 0;
-}
-
-EXPORT_SYM void ppelib_recalculate_force(ppelib_file_t *pe) {
+void ppelib_recalculate(ppelib_file_t *pe) {
 	if (!pe) {
 		return;
 	}
 
-	recalculate_dos_header(pe);
 	recalculate_header(pe);
 	recalculate_sections(pe);
 }
-
-EXPORT_SYM void ppelib_recalculate(ppelib_file_t *pe) {
-	if (!pe) {
-		return;
-	}
-
-	if (pe->dos_header.modified) {
-		recalculate_dos_header(pe);
-	}
-
-	if (pe->header.modified) {
-		recalculate_header(pe);
-	}
-
-	// Doesn't do anything unless there's changes
-	recalculate_sections(pe);
-}
-#endif

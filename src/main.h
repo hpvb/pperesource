@@ -55,4 +55,6 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_file(const char *filename);
 EXPORT_SYM size_t ppelib_write_to_buffer(const ppelib_file_t *pe, uint8_t *buffer, size_t buf_size);
 EXPORT_SYM size_t ppelib_write_to_file(const ppelib_file_t *pe, const char *filename);
 
+void ppelib_recalculate(ppelib_file_t *pe);
+
 #endif /* PPELIB_MAIN_H_ */

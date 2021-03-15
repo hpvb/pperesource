@@ -25,10 +25,15 @@
 #include "pe/section_private.h"
 
 typedef struct resource {
-	uint32_t characteristics;
-	uint32_t date_time_stamp;
-	uint16_t major_version;
-	uint16_t minor_version;
+	uint32_t type_characteristics;
+	uint32_t type_date_time_stamp;
+	uint16_t type_major_version;
+	uint16_t type_minor_version;
+
+	uint32_t name_characteristics;
+	uint32_t name_date_time_stamp;
+	uint16_t name_major_version;
+	uint16_t name_minor_version;
 
 	uint32_t type_id;
 	uint32_t name_id;
@@ -47,11 +52,17 @@ typedef struct resource {
 typedef struct resource_table {
 	size_t size;
 
+	uint32_t characteristics;
+	uint32_t date_time_stamp;
+	uint16_t major_version;
+	uint16_t minor_version;
+
 	resource_t **resources;
 } resource_table_t;
 
 size_t resource_table_deserialize(const section_t *section, const size_t offset, resource_table_t *resource_table);
 size_t resource_table_serialize(const section_t *section, const size_t offset, resource_table_t *resource_table);
 void resource_table_print(resource_table_t *resource_table);
+void update_resource_table(ppelib_file_t *pe);
 
 #endif /* SRC_RESOURCES_RESOURCE_H_ */
