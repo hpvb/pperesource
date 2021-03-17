@@ -27,14 +27,21 @@ pperesource_sources = files([
 	'resources/resource_table_serialize.c',
 	'resources/string_table.c',
 	'resources/versioninfo.c',
+	'resources/versioninfo_deserialize.c',
+	'resources/versioninfo_serialize.c',
 	'utils.c',
 ])
+
+if host_machine.system() == 'windows'
+	pperesource_sources += files('thirdparty/winiconv/win_iconv.c')
+endif
 
 pperesource = shared_library(
 	'pperesource',
 	pperesource_sources,
 	c_args: extra_args,
 	include_directories: inc,
+	dependencies: libs,
 	install: true,
 	version: meson.project_version(),
 	soversion: 0

@@ -16,6 +16,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "main.h"
 #include "ppe_error.h"
@@ -34,6 +35,18 @@ int main(int argc, char *argv[]) {
 		retval = 1;
 		goto out;
 	}
+
+	//	if (!pe->resource_table.numb_versioninfo) {
+	//		++pe->resource_table.size;
+	//		pe->resource_table.resources = realloc(pe->resource_table.resources, sizeof(resource_t) * pe->resource_table.size);
+	//		pe->resource_table.versioninfo = calloc(sizeof(version_info_t), 1);
+	//		resource_t* resource = &pe->resource_table.resources[pe->resource_table.size - 1];
+	//		pe->resource_table.versioninfo->resource = resource;
+	//		memset(resource, 0, sizeof(resource_t));
+	//		resource->type_id = RT_VERSION;
+	//		++pe->resource_table.numb_versioninfo;
+	//		versioninfo_set_value(&pe->resource_table.versioninfo[0], 0, 0, "This is a key", "This is a value");
+	//	}
 
 	update_resource_table(pe);
 	ppelib_write_to_file(pe, argv[2]);

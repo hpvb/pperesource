@@ -51,13 +51,18 @@ EXPORT_SYM void ppelib_destroy(ppelib_file_t *pe) {
 	}
 
 	for (size_t i = 0; i < pe->resource_table.size; ++i) {
-		free(pe->resource_table.resources[i]->type);
-		free(pe->resource_table.resources[i]->name);
-		free(pe->resource_table.resources[i]->language);
-		free(pe->resource_table.resources[i]->data);
-		free(pe->resource_table.resources[i]);
+		free(pe->resource_table.resources[i].type);
+		free(pe->resource_table.resources[i].name);
+		free(pe->resource_table.resources[i].language);
+		free(pe->resource_table.resources[i].data);
 	}
 	free(pe->resource_table.resources);
+
+	for (size_t i = 0; i < pe->resource_table.numb_versioninfo; ++i) {
+		versioninfo_free(&pe->resource_table.versioninfo[i]);
+	}
+
+	free(pe->resource_table.versioninfo);
 
 	free(pe->stub);
 	free(pe->data_directories);
@@ -269,16 +274,23 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 		if (section) {
 			resource_table_deserialize(section, offset, &pe->resource_table);
 			if (ppelib_error_peek()) {
-				printf("Resource parse error: %s\n", ppelib_error());
+				goto out;
 			}
-			ppelib_reset_error();
 		}
 	}
 
 	resource_t *res = NULL;
-	size_t nmb = get_resource_by_type_id(&pe->resource_table, RT_VERSION, &res);
-	if (nmb == 1) {
-		versioninfo_deserialize(res->data, res->size, 0);
+	size_t nmb = resource_get_by_type_id(&pe->resource_table, RT_VERSION, &res);
+	if (nmb) {
+		pe->resource_table.numb_versioninfo = nmb;
+		pe->resource_table.versioninfo = calloc(sizeof(version_info_t) * nmb, 1);
+		for (size_t i = 0; i < nmb; ++i) {
+			versioninfo_deserialize(&res[i], &pe->resource_table.versioninfo[i]);
+		}
+		if (ppelib_error_peek()) {
+			//printf("Versioninfo_deserialize: %s\n", ppelib_error());
+			ppelib_reset_error();
+		}
 	}
 out:
 	if (ppelib_error_peek()) {
@@ -494,14 +506,35 @@ void recalculate_sections(ppelib_file_t *pe) {
 
 	next_section_virtual = MAX(next_section_virtual, next_section_physical);
 
+	size_t old_end_of_section_data = pe->end_of_section_data;
+
 	section_t *resource_section = pe->data_directories[DIR_RESOURCE_TABLE].section;
 	if (resource_section) {
 		uint16_t section_index = section_find_index(pe, resource_section);
 		size_t end_of_section_va = 0;
 
+		resource_section->virtual_size = (uint32_t)resource_section->contents_size;
+		resource_section->size_of_raw_data = TO_NEAREST((uint32_t)resource_section->contents_size, pe->header.file_alignment);
+
 		for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
 			section_t *section = pe->sections[i];
-			end_of_section_va = MAX(end_of_section_va, section->virtual_address + section->virtual_size);
+			if (!CHECK_BIT(section->characteristics, IMAGE_SCN_MEM_DISCARDABLE)) {
+				end_of_section_va = MAX(end_of_section_va, section->virtual_address + section->virtual_size);
+			}
+		}
+
+		if (!resource_section->virtual_address) {
+			resource_section->virtual_address = (uint32_t)TO_NEAREST(end_of_section_va, pe->header.section_alignment);
+			sort_sections(pe);
+			size_t start_of_debug_va = resource_section->virtual_address + resource_section->virtual_size;
+
+			for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
+				section_t *section = pe->sections[i];
+				if (CHECK_BIT(section->characteristics, IMAGE_SCN_MEM_DISCARDABLE)) {
+					section->virtual_address = (uint32_t)TO_NEAREST(start_of_debug_va, pe->header.section_alignment);
+					start_of_debug_va = section->virtual_address + section->virtual_size;
+				}
+			}
 		}
 
 		if (section_index < pe->header.number_of_sections - 1) {
@@ -512,16 +545,9 @@ void recalculate_sections(ppelib_file_t *pe) {
 				resource_section->virtual_address = (uint32_t)TO_NEAREST(end_of_section_va, pe->header.section_alignment);
 			}
 		}
-
-		if (section_index == pe->header.number_of_sections - 1) {
-			if (!resource_section->virtual_address) {
-				resource_section->virtual_address = (uint32_t)TO_NEAREST(end_of_section_va, pe->header.section_alignment);
-			}
-		}
-
-		resource_section->virtual_size = (uint32_t)resource_section->contents_size;
-		resource_section->size_of_raw_data = TO_NEAREST((uint32_t)resource_section->contents_size, pe->header.file_alignment);
 	}
+
+	sort_sections(pe);
 
 	for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
 		section_t *section = pe->sections[i];
@@ -584,6 +610,10 @@ void recalculate_sections(ppelib_file_t *pe) {
 
 		pe->end_of_section_data = MAX(pe->end_of_section_data,
 				section->pointer_to_raw_data + section->size_of_raw_data);
+	}
+
+	if (pe->header.pointer_to_symbol_table) {
+		pe->header.pointer_to_symbol_table += (uint32_t)(pe->end_of_section_data - old_end_of_section_data);
 	}
 
 	// PE files with only data can have this set to garbage. Might as well just keep it.

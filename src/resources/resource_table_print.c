@@ -34,10 +34,10 @@ void resource_table_fprint(FILE *stream, resource_table_t *resource_table) {
 	ppelib_reset_error();
 
 	for (uint32_t i = 0; i < resource_table->size; ++i) {
-		resource_t *resource = resource_table->resources[i];
+		resource_t *resource = &resource_table->resources[i];
 		fprintf(stream, "Type: ");
 		if (resource->type) {
-			fprintf(stream, "%ls", resource->type);
+			fprintf(stream, "%s", resource->type);
 		} else {
 			const char *type = map_lookup(resource->type_id, ppelib_resource_types_map);
 			if (type) {
@@ -49,14 +49,14 @@ void resource_table_fprint(FILE *stream, resource_table_t *resource_table) {
 
 		fprintf(stream, " Name: ");
 		if (resource->name) {
-			fprintf(stream, "%ls", resource->name);
+			fprintf(stream, "%s", resource->name);
 		} else {
 			fprintf(stream, "Ordinal(%i)", resource->name_id);
 		}
 
 		fprintf(stream, " Language: ");
 		if (resource->language) {
-			fprintf(stream, "%ls", resource->language);
+			fprintf(stream, "%s", resource->language);
 		} else {
 			const char *language = map_lookup(resource->language_id, ppelib_language_map);
 			if (language) {

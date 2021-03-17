@@ -45,4 +45,7 @@ uint32_t get_machine_page_size(enum ppelib_machine_type machine);
 
 const char *map_lookup(uint32_t value, const ppelib_map_entry_t *map);
 
+char *get_utf16_string(const uint8_t *buffer, size_t size, size_t offset, size_t string_size);
+size_t convert_utf8_string(const char *string, char **outstring);
+
 #endif /* PPELIB_UTILS_H */

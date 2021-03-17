@@ -25,16 +25,16 @@
 #include "ppe_error.h"
 #include "resources/resource.h"
 
-size_t get_resource_by_type_id(const resource_table_t *resource_table, uint32_t type, resource_t **resource) {
+size_t resource_get_by_type_id(const resource_table_t *resource_table, uint32_t type, resource_t **resource) {
 	ppelib_reset_error();
 	*resource = NULL;
 
 	size_t size = 0;
 
 	for (size_t i = 0; i < resource_table->size; ++i) {
-		if (resource_table->resources[i]->type_id == type) {
+		if (resource_table->resources[i].type_id == type) {
 			if (!*resource) {
-				*resource = resource_table->resources[i];
+				*resource = &resource_table->resources[i];
 			}
 
 			++size;
@@ -42,4 +42,21 @@ size_t get_resource_by_type_id(const resource_table_t *resource_table, uint32_t 
 	}
 
 	return size;
+}
+
+size_t resource_get_numb_versioninfo(const resource_table_t *resource_table) {
+	ppelib_reset_error();
+
+	return resource_table->numb_versioninfo;
+}
+
+version_info_t *resource_get_versioninfo(const resource_table_t *resource_table, size_t idx) {
+	ppelib_reset_error();
+
+	if (idx >= resource_table->numb_versioninfo) {
+		ppelib_set_error("Index out of range");
+		return NULL;
+	}
+
+	return &resource_table->versioninfo[idx];
 }

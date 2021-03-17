@@ -26,6 +26,17 @@
 
 #include "section_private.h"
 
+static int sectioncmp(const void *a, const void *b) {
+	section_t *sa = *(section_t **)a;
+	section_t *sb = *(section_t **)b;
+
+	return (sa->virtual_address > sb->virtual_address);
+}
+
+void sort_sections(ppelib_file_t *pe) {
+	qsort(pe->sections, pe->header.number_of_sections, sizeof(section_t *), &sectioncmp);
+}
+
 size_t section_rva_to_offset(const section_t *section, size_t rva) {
 	size_t rva_base = 0;
 
@@ -115,6 +126,7 @@ uint16_t section_create(ppelib_file_t *pe, char name[9], uint32_t virtual_size, 
 			ppelib_set_error("Couldn't allocate section");
 			return 0;
 		}
+		section->contents_size = raw_size;
 
 		if (data) {
 			memcpy(section->contents, data, raw_size);

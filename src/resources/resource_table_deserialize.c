@@ -41,39 +41,32 @@ thread_local static uint32_t type;
 thread_local static uint32_t name;
 thread_local static uint32_t language;
 
-size_t parse_resource_table(const uint8_t *buffer, const size_t size, const size_t offset, resource_table_t *resource_table, uint32_t level);
+static size_t parse_resource_table(const uint8_t *buffer, const size_t size, const size_t offset, resource_table_t *resource_table, uint32_t level);
 
-wchar_t *get_string(const uint8_t *buffer, size_t size, size_t offset) {
+static char *get_len_string(const uint8_t *buffer, const size_t size, const size_t offset) {
+	if (offset > size) {
+		ppelib_set_error("Can't read past end of buffer");
+		return NULL;
+	}
+
 	if (offset + 2 > size) {
-		ppelib_set_error("Section too small for string");
+		ppelib_set_error("Not enough space for string");
 		return NULL;
 	}
 
-	uint16_t s_size = read_uint16_t(buffer + offset + 0);
+	uint16_t string_size = read_uint16_t(buffer + offset);
+	string_size *= 2;
 
-	if (offset + 2u + (s_size * 2u) > size) {
-		ppelib_set_error("Section too small for string");
+	if (offset + 2 + string_size > size) {
+		ppelib_set_error("Not enough space for string data");
 		return NULL;
 	}
 
-	wchar_t *string = calloc((s_size + 1u) * sizeof(wchar_t), 1);
-	if (!string) {
-		ppelib_set_error("Failed to allocate string");
-		return NULL;
-	}
-
-	if (sizeof(wchar_t) == 2) {
-		memcpy(string, buffer + 2u, s_size * 2u);
-	} else {
-		for (uint16_t i = 0; i < s_size; ++i) {
-			memcpy(string + i, buffer + offset + 2 + (i * 2), 2);
-		}
-	}
-
-	return string;
+	//printf("get_len_string: size: %i\n", string_size);
+	return get_utf16_string(buffer, size, offset + 2, string_size);
 }
 
-size_t parse_resource(const uint8_t *buffer, const size_t size, const size_t offset, resource_table_t *resource_table) {
+static size_t parse_resource(const uint8_t *buffer, const size_t size, const size_t offset, resource_table_t *resource_table) {
 	if (offset > size || size - offset < 16) {
 		ppelib_set_error("Not enough space for resource data entry");
 		return 0;
@@ -84,9 +77,9 @@ size_t parse_resource(const uint8_t *buffer, const size_t size, const size_t off
 	uint32_t codepage = read_uint32_t(buffer + offset + 8);
 	uint32_t reserved = read_uint32_t(buffer + offset + 12);
 
-	wchar_t *type_s = NULL;
-	wchar_t *name_s = NULL;
-	wchar_t *language_s = NULL;
+	char *type_s = NULL;
+	char *name_s = NULL;
+	char *language_s = NULL;
 
 	size_t data_offset = data_rva - rscs_base;
 	if (data_offset > size || data_offset + data_size > size) {
@@ -95,35 +88,35 @@ size_t parse_resource(const uint8_t *buffer, const size_t size, const size_t off
 	}
 
 	if (CHECK_BIT(type, HIGH_BIT32)) {
-		type_s = get_string(buffer, size, type ^ HIGH_BIT32);
+		type_s = get_len_string(buffer, size, type ^ HIGH_BIT32);
+		if (ppelib_error_peek()) {
+			goto out;
+		}
 	}
 
 	if (CHECK_BIT(name, HIGH_BIT32)) {
-		name_s = get_string(buffer, size, name ^ HIGH_BIT32);
+		name_s = get_len_string(buffer, size, name ^ HIGH_BIT32);
+		if (ppelib_error_peek()) {
+			goto out;
+		}
 	}
 
 	if (CHECK_BIT(language, HIGH_BIT32)) {
-		language_s = get_string(buffer, size, language ^ HIGH_BIT32);
-	}
-
-	if (ppelib_error_peek()) {
-		goto out;
+		language_s = get_len_string(buffer, size, language ^ HIGH_BIT32);
+		if (ppelib_error_peek()) {
+			goto out;
+		}
 	}
 
 	++resource_table->size;
-	resource_table->resources = realloc(resource_table->resources, sizeof(resource_t *) * resource_table->size);
+	resource_table->resources = realloc(resource_table->resources, sizeof(resource_t) * resource_table->size);
 	if (!resource_table->resources) {
 		ppelib_set_error("Failed to allocate resource");
 		goto out;
 	}
 
-	resource_table->resources[resource_table->size - 1] = calloc(sizeof(resource_t), 1);
-	if (!resource_table->resources[resource_table->size - 1]) {
-		ppelib_set_error("Failed to allocate resource");
-		goto out;
-	}
-
-	resource_t *resource = resource_table->resources[resource_table->size - 1];
+	resource_t *resource = &resource_table->resources[resource_table->size - 1];
+	memset(resource, 0, sizeof(resource_t));
 
 	resource->type_characteristics = type_characteristics;
 	resource->type_date_time_stamp = type_date_time_stamp;
@@ -164,10 +157,13 @@ out:
 	free(type_s);
 	free(name_s);
 	free(language_s);
+	type_s = NULL;
+	name_s = NULL;
+	language_s = NULL;
 	return 0;
 }
 
-size_t parse_resource_entry(const uint8_t *buffer, const size_t size, const size_t offset, resource_table_t *resource_table, uint32_t level) {
+static size_t parse_resource_entry(const uint8_t *buffer, const size_t size, const size_t offset, resource_table_t *resource_table, uint32_t level) {
 	if (offset > size || size - offset < 8) {
 		ppelib_set_error("Not enough space for resource directory entry");
 		return 0;
@@ -200,7 +196,7 @@ size_t parse_resource_entry(const uint8_t *buffer, const size_t size, const size
 	return 0;
 }
 
-size_t parse_resource_table(const uint8_t *buffer, const size_t size, const size_t offset, resource_table_t *resource_table, uint32_t level) {
+static size_t parse_resource_table(const uint8_t *buffer, const size_t size, const size_t offset, resource_table_t *resource_table, uint32_t level) {
 	if (offset > size || size - offset < 16) {
 		ppelib_set_error("Not enough space for resource directory table");
 		return 0;

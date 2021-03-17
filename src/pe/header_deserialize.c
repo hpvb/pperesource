@@ -22,8 +22,7 @@
 #include "ppe_error.h"
 #include "utils.h"
 
-size_t header_deserialize(const uint8_t *buffer, const size_t size,
-		const size_t offset, header_t *header) {
+size_t header_deserialize(const uint8_t *buffer, const size_t size, const size_t offset, header_t *header) {
 	ppelib_reset_error();
 
 	if (offset + 92 > size) {

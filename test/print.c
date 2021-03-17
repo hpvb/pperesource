@@ -52,6 +52,22 @@ int main(int argc, char *argv[]) {
 		printf("\n");
 	}
 
+	//	printf("%s\n", argv[1]);
+	if (pe->resource_table.numb_versioninfo) {
+		printf("\nVersion info\n");
+	}
+
+	for (size_t i = 0; i < pe->resource_table.numb_versioninfo; ++i) {
+		versioninfo_print(&pe->resource_table.versioninfo[i]);
+	}
+
+	resource_t *res = NULL;
+	size_t nmb = resource_get_by_type_id(&pe->resource_table, RT_VERSION, &res);
+	if (nmb) {
+		FILE *fp = fopen("resource.dump", "w");
+		fwrite(res[0].data, res[0].size, 1, fp);
+		fclose(fp);
+	}
 out:
 	ppelib_destroy(pe);
 	return retval; // Non-zero return values are reserved for future use.

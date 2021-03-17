@@ -42,7 +42,7 @@ void header_fprint(FILE *stream, const header_t *header) {
 	struct tm tm_time_date_stamp;
 	time_t time_time_date_stamp = (time_t)header->time_date_stamp;
 	gmtime_r(&time_time_date_stamp, &tm_time_date_stamp);
-	strftime(time_out_time_date_stamp, sizeof(time_out_time_date_stamp), "%a, %d %b %Y %T %z", &tm_time_date_stamp);
+	strftime(time_out_time_date_stamp, sizeof(time_out_time_date_stamp), "%a, %d %b %Y %H:%M:%S %z", &tm_time_date_stamp);
 	time_out_time_date_stamp[sizeof(time_out_time_date_stamp) - 1] = 0;
 	fprintf(stream, "TimeDateStamp: %s\n", time_out_time_date_stamp);
 	fprintf(stream, "PointerToSymbolTable: 0x%08X\n", header->pointer_to_symbol_table);

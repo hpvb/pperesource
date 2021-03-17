@@ -35,7 +35,7 @@ typedef struct resource_directory_entry {
 	uint32_t name_id;
 	uint32_t entry_offset;
 
-	const wchar_t *name;
+	const char *name;
 	resource_directory_table_t *directory_table;
 	resource_data_entry_t *data_entry;
 } resource_directory_entry_t;

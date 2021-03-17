@@ -24,6 +24,8 @@
 #include "pe/constants.h"
 #include "pe/section_private.h"
 
+#include "resources/versioninfo.h"
+
 typedef struct resource {
 	uint32_t type_characteristics;
 	uint32_t type_date_time_stamp;
@@ -41,9 +43,9 @@ typedef struct resource {
 	uint32_t codepage;
 	uint32_t reserved;
 
-	wchar_t *type;
-	wchar_t *name;
-	wchar_t *language;
+	char *type;
+	char *name;
+	char *language;
 
 	size_t size;
 	uint8_t *data;
@@ -57,7 +59,10 @@ typedef struct resource_table {
 	uint16_t major_version;
 	uint16_t minor_version;
 
-	resource_t **resources;
+	resource_t *resources;
+
+	size_t numb_versioninfo;
+	version_info_t *versioninfo;
 } resource_table_t;
 
 size_t resource_table_deserialize(const section_t *section, const size_t offset, resource_table_t *resource_table);
@@ -65,8 +70,9 @@ size_t resource_table_serialize(const section_t *section, const size_t offset, r
 void resource_table_print(resource_table_t *resource_table);
 void update_resource_table(ppelib_file_t *pe);
 
-size_t get_resource_by_type_name(wchar_t *type);
-size_t get_resource_by_type_id(const resource_table_t *resource_table, uint32_t type, resource_t **resource);
+size_t resource_get_by_type_name(char *type);
+size_t resource_get_by_type_id(const resource_table_t *resource_table, uint32_t type, resource_t **resource);
 
-void versioninfo_deserialize(const uint8_t *buffer, size_t size, size_t offset);
+size_t resource_get_numb_versioninfo(const resource_table_t *resource_table);
+version_info_t *resource_get_versioninfo(const resource_table_t *resource_table, size_t idx);
 #endif /* SRC_RESOURCES_RESOURCE_H_ */

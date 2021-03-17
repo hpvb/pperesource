@@ -1,4 +1,10 @@
 # Exclude files which shouldn't be modified by pre-commit hooks.
+exclude: |
+  (?x)^(
+    src/thirdparty/.* |
+    fuzz/corpus/.*
+  )
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0

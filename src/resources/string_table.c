@@ -19,7 +19,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 
 #include "main.h"
 #include "platform.h"
@@ -31,29 +30,24 @@ void string_table_serialize(string_table_t *table, uint8_t *buffer) {
 	for (size_t i = 0; i < table->size; ++i) {
 		size_t offset = table->base_offset + table->strings[i].offset;
 
-		const wchar_t *string = table->strings[i].string;
-		size_t size = wcslen(string);
+		const char *string = table->strings[i].utf16_string;
+		size_t size = table->strings[i].bytes;
 
-		if (size > UINT16_MAX) {
+		if (size / 2 > UINT16_MAX) {
 			ppelib_set_error("String too long");
 			return;
 		}
 
-		write_uint16_t(buffer + offset, (uint16_t)size);
-
-		if (sizeof(wchar_t) == 2) {
-			memcpy(buffer + offset + 2, string, size * 2);
-		} else {
-			for (uint16_t i = 0; i < size; ++i) {
-				memcpy(buffer + offset + 2 + (i * 2), string + i, 2);
-			}
-		}
+		//		printf("string_table_serialize: writing string %zi\n", size);
+		write_uint16_t(buffer + offset, (uint16_t)(size / 2));
+		memcpy(buffer + offset + 2, string, size);
 	}
 }
 
-string_table_string_t *string_table_find(string_table_t *table, const wchar_t *string) {
+string_table_string_t *string_table_find(string_table_t *table, const char *string) {
+	//	printf("string_table_find: '%s'\n", string);
 	for (size_t i = 0; i < table->size; ++i) {
-		if (wcscmp(string, table->strings[i].string) == 0) {
+		if (strcmp(string, table->strings[i].string) == 0) {
 			return &table->strings[i];
 		}
 	}
@@ -61,39 +55,44 @@ string_table_string_t *string_table_find(string_table_t *table, const wchar_t *s
 	return NULL;
 }
 
-void string_table_put(string_table_t *table, const wchar_t *string) {
-	size_t s_size = (wcslen(string) * 2) + 2;
+void string_table_put(string_table_t *table, const char *string) {
+	char *string_utf16;
+	size_t s_size = convert_utf8_string(string, &string_utf16);
 
-	if (!s_size) {
-		ppelib_set_error("String empty");
-		return;
-	}
-
+	//	printf("Utf16-pointer: %p\n", string_utf16);
+	//	printf("String_table_put: %zi, '%s'\n", s_size, string);
 	if (s_size > UINT16_MAX) {
 		ppelib_set_error("String size too long");
+		free(string_utf16);
 		return;
 	}
 
 	if (string_table_find(table, string)) {
+		free(string_utf16);
 		return;
 	}
 
 	table->size++;
-	table->bytes += s_size;
+	table->bytes += s_size + 2;
 
 	table->strings = realloc(table->strings, sizeof(string_table_string_t) * table->size);
 	table->strings[table->size - 1].string = string;
+	table->strings[table->size - 1].utf16_string = string_utf16;
 	table->strings[table->size - 1].bytes = (uint16_t)s_size;
 
 	if (table->size > 1) {
 		uint32_t prev_offset = table->strings[table->size - 2].offset;
 		uint32_t prev_length = table->strings[table->size - 2].bytes;
-		table->strings[table->size - 1].offset = prev_offset + prev_length;
+		table->strings[table->size - 1].offset = prev_offset + prev_length + 2;
 	} else {
 		table->strings[table->size - 1].offset = 0;
 	}
 }
 
 void string_table_free(string_table_t *table) {
+	for (size_t i = 0; i < table->size; ++i) {
+		free(table->strings[i].utf16_string);
+	}
+
 	free(table->strings);
 }

@@ -25,7 +25,8 @@ typedef struct string_table_string {
 	uint32_t offset;
 	uint16_t bytes;
 
-	const wchar_t *string;
+	const char *string;
+	char *utf16_string;
 } string_table_string_t;
 
 typedef struct string_table {
@@ -38,8 +39,8 @@ typedef struct string_table {
 } string_table_t;
 
 void string_table_free(string_table_t *table);
-void string_table_put(string_table_t *table, const wchar_t *string);
-string_table_string_t *string_table_find(string_table_t *table, const wchar_t *string);
+void string_table_put(string_table_t *table, const char *string);
+string_table_string_t *string_table_find(string_table_t *table, const char *string);
 void string_table_serialize(string_table_t *table, uint8_t *buffer);
 
 #endif /* SRC_RESOURCES_STRING_TABLE_H_ */

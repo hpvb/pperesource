@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
+#include <ctype.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <wchar.h>
 
 #include "pe/codepages.h"
 #include "pe/constants.h"
@@ -30,210 +30,134 @@
 #include "ppe_error.h"
 
 #include "resources/resource.h"
+#include "resources/versioninfo.h"
 #include "utils.h"
 
-wchar_t *get_wchar_string(const uint8_t *buffer, size_t size, size_t offset) {
-	size_t string_size = 0;
-
-	if (offset > size) {
-		ppelib_set_error("Can't read past end of buffer");
-		return NULL;
-	}
-
-	for (size_t i = offset; i < size - 2; i += 2) {
-		uint16_t val = read_uint16_t(buffer + i);
-		if (!val) {
-			string_size = (i - offset) / 2;
-			break;
+void versioninfo_free(version_info_t *versioninfo) {
+	for (size_t i = 0; i < versioninfo->numb_fileinfo; ++i) {
+		for (size_t k = 0; k < versioninfo->fileinfo[i]->size; ++k) {
+			free(versioninfo->fileinfo[i]->entries[k]->key);
+			free(versioninfo->fileinfo[i]->entries[k]->value);
+			free(versioninfo->fileinfo[i]->entries[k]);
 		}
+		free(versioninfo->fileinfo[i]->entries);
+		free(versioninfo->fileinfo[i]);
 	}
 
-	if (!string_size) {
-		ppelib_set_error("No string found");
-		return NULL;
-	}
-
-	wchar_t *string = calloc((string_size + 1u) * sizeof(wchar_t), 1);
-	if (!string) {
-		ppelib_set_error("Failed to allocate string");
-		return NULL;
-	}
-
-	if (sizeof(wchar_t) == 2) {
-		memcpy(string, buffer + offset, string_size * 2u);
-	} else {
-		for (uint16_t i = 0; i < string_size; ++i) {
-			memcpy(string + i, buffer + offset + (i * 2), 2);
-		}
-	}
-
-	return string;
+	free(versioninfo->languages);
+	free(versioninfo->fileinfo);
 }
 
-void versioninfo_deserialize(const uint8_t *buffer, size_t size, size_t offset) {
+dictionary_t *create_fileinfo(version_info_t *versioninfo, const uint16_t language, const uint16_t codepage) {
+	size_t idx = versioninfo->numb_fileinfo;
+	++versioninfo->numb_fileinfo;
+
+	versioninfo->fileinfo = realloc(versioninfo->fileinfo, sizeof(void *) * versioninfo->numb_fileinfo);
+	versioninfo->fileinfo[idx] = calloc(sizeof(dictionary_t), 1);
+	versioninfo->fileinfo[idx]->language.language = language;
+	versioninfo->fileinfo[idx]->language.codepage = codepage;
+
+	return versioninfo->fileinfo[idx];
+}
+
+dictionary_t *find_or_create_fileinfo(version_info_t *versioninfo, const uint16_t language, const uint16_t codepage) {
+	for (size_t i = 0; i < versioninfo->numb_fileinfo; ++i) {
+		if (versioninfo->fileinfo[i]->language.language == language &&
+				versioninfo->fileinfo[i]->language.codepage == codepage) {
+			return versioninfo->fileinfo[i];
+		}
+	}
+
+	return create_fileinfo(versioninfo, language, codepage);
+}
+
+char *strip_string(const char *string) {
+	char *strip_string = strdup(string);
+	size_t strip_string_len = strlen(string);
+	for (size_t i = strip_string_len; i > 0; --i) {
+		if (!isblank(strip_string[i])) {
+			if (i < strip_string_len) {
+				strip_string[i + 1] = 0;
+				break;
+			}
+		}
+	}
+
+	return strip_string;
+}
+
+void versioninfo_set_value(version_info_t *versioninfo, const uint16_t language, const uint16_t codepage, const char *key, const char *value) {
 	ppelib_reset_error();
 
-	if (size < 6) {
-		ppelib_set_error("Too little room for vsersioninfo");
-		return;
+	//	printf("versioninfo_set_value: %s = %s\n", key, value);
+	dictionary_t *fileinfo = find_or_create_fileinfo(versioninfo, language, codepage);
+
+	char *strip_key = strip_string(key);
+	char *strip_value = strip_string(value);
+
+	for (size_t i = 0; i < fileinfo->size; ++i) {
+		if (strcmp(fileinfo->entries[i]->key, strip_key) == 0) {
+			free(fileinfo->entries[i]->value);
+			fileinfo->entries[i]->value = strip_value;
+			free(strip_key);
+			return;
+		}
 	}
 
-	wchar_t *key = NULL;
-	wchar_t *sfi_key = NULL;
-	wchar_t *st_key = NULL;
-	wchar_t *s_key = NULL;
-	wchar_t *s_value = NULL;
+	size_t idx = fileinfo->size;
+	++fileinfo->size;
 
-	uint16_t length = read_uint16_t(buffer + offset + 0);
-	uint16_t value_length = read_uint16_t(buffer + offset + 2);
-	uint16_t type = read_uint16_t(buffer + offset + 4);
-	key = get_wchar_string(buffer, size, offset + 6);
-	if (!key) {
-		return;
+	fileinfo->entries = realloc(fileinfo->entries, sizeof(void *) * fileinfo->size);
+	fileinfo->entries[idx] = malloc(sizeof(dictionary_entry_t));
+	fileinfo->entries[idx]->key = strip_key;
+	fileinfo->entries[idx]->value = strip_value;
+}
+
+void versioninfo_print(const version_info_t *versioninfo) {
+	printf("File Version: %i.%i.%i.%i\n",
+			versioninfo->file_version.major_version,
+			versioninfo->file_version.minor_version,
+			versioninfo->file_version.patch_version,
+			versioninfo->file_version.build_version);
+
+	printf("Product Version: %i.%i.%i.%i\n",
+			versioninfo->file_version.major_version,
+			versioninfo->file_version.minor_version,
+			versioninfo->file_version.patch_version,
+			versioninfo->file_version.build_version);
+
+	printf("Struct version: 0x%08X\n", versioninfo->version);
+	printf("Flags mask: 0x%08X\n", versioninfo->flags_mask);
+	printf("Flags: 0x%08X\n", versioninfo->flags);
+	printf("OS: 0x%08X\n", versioninfo->os);
+	printf("Type: 0x%08X\n", versioninfo->type);
+	printf("SubType: 0x%08X\n", versioninfo->subtype);
+
+	char time_date_stamp[50];
+	struct tm tm_time;
+	time_t time = (time_t)versioninfo->date;
+	gmtime_r(&time, &tm_time);
+	strftime(time_date_stamp, sizeof(time_date_stamp), "%a, %d %b %Y %H:%M:%S %z", &tm_time);
+	time_date_stamp[sizeof(time_date_stamp) - 1] = 0;
+	printf("Date: %s\n", time_date_stamp);
+
+	for (size_t i = 0; i < versioninfo->numb_fileinfo; ++i) {
+		dictionary_t *fileinfo = versioninfo->fileinfo[i];
+		printf("Language: 0x%04X Codepage: 0x%04X\n", fileinfo->language.language, fileinfo->language.codepage);
+
+		for (size_t l = 0; l < fileinfo->size; ++l) {
+			printf("  '%s': '%s'\n", fileinfo->entries[l]->key, fileinfo->entries[l]->value);
+		}
 	}
 
-	if (wcscmp(key, L"VS_VERSION_INFO") != 0) {
-		ppelib_set_error("VS_VERSION_INFO key not found");
-		goto out;
+	if (versioninfo->numb_languages) {
+		printf("Translations: ");
+		for (size_t i = 0; i < versioninfo->numb_languages; ++i) {
+			if (i > 0)
+				printf(" ,");
+			printf("0x%04X 0x%04X ",
+					versioninfo->languages[i].language, versioninfo->languages[i].codepage);
+		}
+		printf("\n");
 	}
-
-	size_t vs_fixedfileinfo_offset = TO_NEAREST(offset + 38, 4);
-
-	if (size < vs_fixedfileinfo_offset + 52) {
-		ppelib_set_error("Too little room for vsfixedfileinfo");
-		goto out;
-	}
-
-	uint32_t signature = read_uint32_t(buffer + vs_fixedfileinfo_offset);
-	if (signature != 0xFEEF04BD) {
-		ppelib_set_error("VS_FIXEDFILEINFO signature not found");
-		goto out;
-	}
-
-	uint32_t struct_version = read_uint32_t(buffer + vs_fixedfileinfo_offset + 4);
-	uint32_t file_version_hi = read_uint32_t(buffer + vs_fixedfileinfo_offset + 8);
-	uint32_t file_version_lo = read_uint32_t(buffer + vs_fixedfileinfo_offset + 12);
-	uint32_t product_version_hi = read_uint32_t(buffer + vs_fixedfileinfo_offset + 16);
-	uint32_t product_version_lo = read_uint32_t(buffer + vs_fixedfileinfo_offset + 20);
-	uint32_t file_flags_mask = read_uint32_t(buffer + vs_fixedfileinfo_offset + 24);
-	uint32_t file_flags = read_uint32_t(buffer + vs_fixedfileinfo_offset + 28);
-	uint32_t file_os = read_uint32_t(buffer + vs_fixedfileinfo_offset + 32);
-	uint32_t file_type = read_uint32_t(buffer + vs_fixedfileinfo_offset + 36);
-	uint32_t file_subtype = read_uint32_t(buffer + vs_fixedfileinfo_offset + 40);
-	uint32_t file_date_hi = read_uint32_t(buffer + vs_fixedfileinfo_offset + 44);
-	uint32_t file_date_lo = read_uint32_t(buffer + vs_fixedfileinfo_offset + 48);
-
-	size_t stringfileinfo_offset = TO_NEAREST(vs_fixedfileinfo_offset + 52, 4);
-
-	if (size < stringfileinfo_offset + 8) {
-		ppelib_set_error("Too little room for stringfileinfo");
-		goto out;
-	}
-
-	uint16_t sfi_length = read_uint16_t(buffer + stringfileinfo_offset + 0);
-	uint16_t sfi_value_length = read_uint16_t(buffer + stringfileinfo_offset + 2);
-	uint16_t sfi_type = read_uint16_t(buffer + stringfileinfo_offset + 4);
-	sfi_key = get_wchar_string(buffer, size, stringfileinfo_offset + 6);
-	if (!sfi_key) {
-		goto out;
-	}
-
-	if (wcscmp(sfi_key, L"StringFileInfo") != 0) {
-		printf("KEY: %ls\n", sfi_key);
-		ppelib_set_error("StringFileInfo key not found");
-		goto out;
-	}
-
-	size_t stringtable_offset = TO_NEAREST(stringfileinfo_offset + 36, 4);
-	if (size < stringtable_offset + 8) {
-		ppelib_set_error("Too litte room for stringtable");
-		goto out;
-	}
-
-	uint16_t st_length = read_uint16_t(buffer + stringtable_offset + 0);
-	uint16_t st_value_length = read_uint16_t(buffer + stringtable_offset + 2);
-	uint16_t st_type = read_uint16_t(buffer + stringtable_offset + 4);
-	st_key = get_wchar_string(buffer, size, stringtable_offset + 6);
-	if (!st_key) {
-		goto out;
-	}
-
-	size_t string_offset = TO_NEAREST(stringtable_offset + (wcslen(st_key) * 2) + 2 + 6, 4);
-	if (size < string_offset + 8) {
-		ppelib_set_error("Too litte room for string");
-		goto out;
-	}
-
-	uint16_t s_length = read_uint16_t(buffer + string_offset + 0);
-	uint16_t s_value_length = read_uint16_t(buffer + string_offset + 2);
-	uint16_t s_type = read_uint16_t(buffer + string_offset + 4);
-	s_key = get_wchar_string(buffer, size, string_offset + 6);
-	if (!s_key) {
-		goto out;
-	}
-
-	size_t value_offset = TO_NEAREST(string_offset + (wcslen(s_key) * 2) + 2 + 6, 4);
-	s_value = get_wchar_string(buffer, size, value_offset + 0);
-	if (!s_value) {
-		goto out;
-	}
-
-	printf("length: %i\n", length);
-	printf("value_length: %i\n", value_length);
-	printf("type: %i\n", type);
-	printf("Key: %ls\n", key);
-
-	printf("------\n");
-	printf("Signature: 0x%08X\n", signature);
-	printf("struct_version: %i\n", struct_version);
-	printf("file_version_hi: %i\n", file_version_hi);
-	printf("file_version_lo: %i\n", file_version_lo);
-	printf("product_version_hi: %i\n", product_version_hi);
-	printf("product_version_lo: %i\n", product_version_lo);
-	printf("file_flags_mask: %i\n", file_flags_mask);
-	printf("file_flags: %i\n", file_flags);
-	printf("file_os: %i\n", file_os);
-	printf("file_type: %i\n", file_type);
-	printf("file_subtype: %i\n", file_subtype);
-	printf("file_date_hi: %i\n", file_date_hi);
-	printf("file_date_lo: %i\n", file_date_lo);
-
-	printf("------\n");
-	printf("sfi_length: %i\n", sfi_length);
-	printf("sfi_value_length: %i\n", sfi_value_length);
-	printf("sfi_type: %i\n", sfi_type);
-	printf("sfi_key: %ls\n", sfi_key);
-
-	printf("------\n");
-	printf("st_length: %i\n", st_length);
-	printf("st_value_length: %i\n", st_value_length);
-	printf("st_type: %i\n", st_type);
-	printf("st_key: %ls\n", st_key);
-
-	printf("------\n");
-	printf("s_length: %i\n", s_length);
-	printf("s_value_length: %i\n", s_value_length);
-	printf("s_type: %i\n", s_type);
-	printf("s_key: %ls\n", s_key);
-	printf("s_value: %ls\n", s_value);
-
-	printf("------\n");
-	printf("File Version: %d.%d.%d.%d\n",
-			(file_version_hi >> 16) & 0xffff,
-			(file_version_hi >> 0) & 0xffff,
-			(file_version_lo >> 16) & 0xffff,
-			(file_version_lo >> 0) & 0xffff);
-
-	printf("Product Version: %d.%d.%d.%d\n",
-			(product_version_hi >> 16) & 0xffff,
-			(product_version_hi >> 0) & 0xffff,
-			(product_version_lo >> 16) & 0xffff,
-			(product_version_lo >> 0) & 0xffff);
-out:
-
-	free(key);
-	free(sfi_key);
-	free(st_key);
-	free(s_key);
-	free(s_value);
 }

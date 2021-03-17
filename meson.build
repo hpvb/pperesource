@@ -39,7 +39,29 @@ if cc.get_id() == 'msvc'
 	)
 endif
 
-inc = include_directories('include', 'src')
+libs = []
+found_iconv = false
+
+if host_machine.system() == 'windows'
+	inc = include_directories('include', 'src', 'src/thirdparty/winiconv')
+	found_iconv = true
+else
+	inc = include_directories('include', 'src')
+
+	if cc.has_function('iconv_open')
+		found_iconv = true
+	endif
+
+	if not found_iconv and cc.has_header_symbol('iconv.h', 'iconv_open')
+		libs += declare_dependency(link_args : ['-liconv'])
+		found_iconv = true
+	endif
+
+	if found_iconv == false
+		error('Cannot find iconv')
+	endif
+endif
+
 subdir('include')
 subdir('src')
 
