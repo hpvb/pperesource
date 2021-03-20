@@ -27,7 +27,7 @@ endif
 
 if cc.get_argument_syntax() == 'gcc'
 	add_project_arguments(
-		['-Wconversion', '-D_POSIX_C_SOURCE=200809L', '-D_GNU_SOURCE=1'],
+		['-Wconversion', '-D_POSIX_C_SOURCE=200809L'],
 		language: ['c', 'cpp'],
 	)
 endif

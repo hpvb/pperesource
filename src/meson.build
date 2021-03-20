@@ -1,14 +1,4 @@
-if cc.get_id() != 'msvc'
-	if cc.get_argument_syntax() == 'gcc'
-		extra_args = ['-fvisibility=hidden']
-	else
-		if cc.has_argument('-fvisibility=hidden')
-			extra_args = ['-fvisibility=hidden']
-		endif
-	endif
-else
-	extra_args = []
-endif
+subdir('thirdparty/yxml')
 
 pperesource_sources = files([
 	'main.c',
@@ -39,10 +29,11 @@ endif
 pperesource = shared_library(
 	'pperesource',
 	pperesource_sources,
-	c_args: extra_args,
 	include_directories: inc,
 	dependencies: libs,
 	install: true,
 	version: meson.project_version(),
+	gnu_symbol_visibility: 'hidden',
+	link_with: yxml,
 	soversion: 0
 )
