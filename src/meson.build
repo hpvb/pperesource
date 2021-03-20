@@ -1,15 +1,3 @@
-if cc.get_id() != 'msvc'
-	if cc.get_argument_syntax() == 'gcc'
-		extra_args = ['-fvisibility=hidden']
-	else
-		if cc.has_argument('-fvisibility=hidden')
-			extra_args = ['-fvisibility=hidden']
-		endif
-	endif
-else
-	extra_args = []
-endif
-
 pperesource_sources = files([
 	'main.c',
 	'pe/data_directory.c',
@@ -39,7 +27,7 @@ endif
 pperesource = shared_library(
 	'pperesource',
 	pperesource_sources,
-	c_args: extra_args,
+	gnu_symbol_visibility: 'hidden',
 	include_directories: inc,
 	dependencies: libs,
 	install: true,

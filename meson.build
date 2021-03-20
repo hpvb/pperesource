@@ -27,7 +27,7 @@ endif
 
 if cc.get_argument_syntax() == 'gcc'
 	add_project_arguments(
-		['-Wconversion', '-D_POSIX_C_SOURCE=200809L', '-D_GNU_SOURCE=1'],
+		['-Wconversion', '-D_POSIX_C_SOURCE=200809L'],
 		language: ['c', 'cpp'],
 	)
 endif
@@ -40,24 +40,17 @@ if cc.get_id() == 'msvc'
 endif
 
 libs = []
-found_iconv = false
 
 if host_machine.system() == 'windows'
 	inc = include_directories('include', 'src', 'src/thirdparty/winiconv')
-	found_iconv = true
 else
 	inc = include_directories('include', 'src')
 
 	if cc.has_function('iconv_open')
 		found_iconv = true
-	endif
-
-	if not found_iconv and cc.has_header_symbol('iconv.h', 'iconv_open')
+	elif cc.has_header_symbol('iconv.h', 'iconv_open')
 		libs += declare_dependency(link_args : ['-liconv'])
-		found_iconv = true
-	endif
-
-	if found_iconv == false
+	else
 		error('Cannot find iconv')
 	endif
 endif
