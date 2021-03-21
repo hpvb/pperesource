@@ -3,6 +3,7 @@ fuzz = executable(
 	[ 'fuzz.c', pperesource_sources],
 	include_directories: inc,
 	dependencies: libs,
+	link_with: thirdparty_libs,
 )
 
 fuzz_test = executable(
@@ -10,6 +11,7 @@ fuzz_test = executable(
 	[ 'fuzz-test.c', pperesource_sources],
 	include_directories: inc,
 	dependencies: libs,
+	link_with: thirdparty_libs,
 )
 
 test('fuzzer run', fuzz_test,

@@ -3,6 +3,7 @@ print = executable(
 	[ 'print.c', pperesource_sources],
 	include_directories: inc,
 	dependencies: libs,
+	link_with: thirdparty_libs,
 )
 
 roundtrip = executable(
@@ -10,4 +11,5 @@ roundtrip = executable(
 	[ 'roundtrip.c', pperesource_sources],
 	include_directories: inc,
 	dependencies: libs,
+	link_with: thirdparty_libs,
 )

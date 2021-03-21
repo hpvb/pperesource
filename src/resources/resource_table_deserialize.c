@@ -109,14 +109,14 @@ static size_t parse_resource(const uint8_t *buffer, const size_t size, const siz
 	}
 
 	++resource_table->size;
-	resource_table->resources = realloc(resource_table->resources, sizeof(resource_t) * resource_table->size);
+	resource_table->resources = realloc(resource_table->resources, sizeof(resource_t *) * resource_table->size);
 	if (!resource_table->resources) {
 		ppelib_set_error("Failed to allocate resource");
 		goto out;
 	}
 
-	resource_t *resource = &resource_table->resources[resource_table->size - 1];
-	memset(resource, 0, sizeof(resource_t));
+	resource_table->resources[resource_table->size - 1] = calloc(sizeof(resource_t), 1);
+	resource_t *resource = resource_table->resources[resource_table->size - 1];
 
 	resource->type_characteristics = type_characteristics;
 	resource->type_date_time_stamp = type_date_time_stamp;

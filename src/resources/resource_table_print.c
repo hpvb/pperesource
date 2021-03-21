@@ -34,7 +34,7 @@ void resource_table_fprint(FILE *stream, resource_table_t *resource_table) {
 	ppelib_reset_error();
 
 	for (uint32_t i = 0; i < resource_table->size; ++i) {
-		resource_t *resource = &resource_table->resources[i];
+		resource_t *resource = resource_table->resources[i];
 		fprintf(stream, "Type: ");
 		if (resource->type) {
 			fprintf(stream, "%s", resource->type);

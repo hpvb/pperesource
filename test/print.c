@@ -43,15 +43,15 @@ int main(int argc, char *argv[]) {
 	}
 	printf("\n");
 
-	printf("\nResources\n");
-	resource_table_print(&pe->resource_table);
-	printf("\n");
-
 	printf("\nSections\n");
 	for (uint16_t i = 0; i < pe->header.number_of_sections; ++i) {
 		section_print(pe->sections[i]);
 		printf("\n");
 	}
+
+	printf("\nResources\n");
+	resource_table_print(&pe->resource_table);
+	printf("\n");
 
 	//	printf("%s\n", argv[1]);
 	if (pe->resource_table.numb_versioninfo) {
@@ -62,11 +62,18 @@ int main(int argc, char *argv[]) {
 		versioninfo_print(&pe->resource_table.versioninfo[i]);
 	}
 
-	resource_t *res = NULL;
-	size_t nmb = resource_get_by_type_id(&pe->resource_table, RT_VERSION, &res);
-	if (nmb) {
+	if (pe->resource_table.numb_icon_group) {
+		printf("\nIcon groups:\n");
+	}
+
+	for (size_t i = 0; i < pe->resource_table.numb_icon_group; ++i) {
+		icon_group_print(&pe->resource_table.icongroups[i]);
+	}
+
+	resource_t *res = resource_get_by_type_id(&pe->resource_table, RT_VERSION, 0);
+	if (res) {
 		FILE *fp = fopen("resource.dump", "w");
-		fwrite(res[0].data, res[0].size, 1, fp);
+		fwrite(res->data, res->size, 1, fp);
 		fclose(fp);
 	}
 out:

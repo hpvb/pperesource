@@ -50,19 +50,7 @@ EXPORT_SYM void ppelib_destroy(ppelib_file_t *pe) {
 		}
 	}
 
-	for (size_t i = 0; i < pe->resource_table.size; ++i) {
-		free(pe->resource_table.resources[i].type);
-		free(pe->resource_table.resources[i].name);
-		free(pe->resource_table.resources[i].language);
-		free(pe->resource_table.resources[i].data);
-	}
-	free(pe->resource_table.resources);
-
-	for (size_t i = 0; i < pe->resource_table.numb_versioninfo; ++i) {
-		versioninfo_free(&pe->resource_table.versioninfo[i]);
-	}
-
-	free(pe->resource_table.versioninfo);
+	resource_table_free(&pe->resource_table);
 
 	free(pe->stub);
 	free(pe->data_directories);
@@ -279,17 +267,35 @@ EXPORT_SYM ppelib_file_t *ppelib_create_from_buffer(const uint8_t *buffer, size_
 		}
 	}
 
-	resource_t *res = NULL;
-	size_t nmb = resource_get_by_type_id(&pe->resource_table, RT_VERSION, &res);
-	if (nmb) {
-		pe->resource_table.numb_versioninfo = nmb;
-		pe->resource_table.versioninfo = calloc(sizeof(version_info_t) * nmb, 1);
-		for (size_t i = 0; i < nmb; ++i) {
-			versioninfo_deserialize(&res[i], &pe->resource_table.versioninfo[i]);
+	{
+		size_t nmb = resource_count_by_type_id(&pe->resource_table, RT_VERSION);
+		if (nmb) {
+			pe->resource_table.numb_versioninfo = nmb;
+			pe->resource_table.versioninfo = calloc(sizeof(version_info_t) * nmb, 1);
+			for (size_t i = 0; i < nmb; ++i) {
+				resource_t *res = resource_get_by_type_id(&pe->resource_table, RT_VERSION, i);
+				versioninfo_deserialize(res, &pe->resource_table.versioninfo[i]);
+			}
+			if (ppelib_error_peek()) {
+				//printf("Versioninfo_deserialize: %s\n", ppelib_error());
+				//ppelib_reset_error();
+			}
 		}
-		if (ppelib_error_peek()) {
-			//printf("Versioninfo_deserialize: %s\n", ppelib_error());
-			ppelib_reset_error();
+	}
+
+	{
+		size_t nmb = resource_count_by_type_id(&pe->resource_table, RT_GROUP_ICON);
+		if (nmb) {
+			pe->resource_table.numb_icon_group = nmb;
+			pe->resource_table.icongroups = calloc(sizeof(icon_group_t) * nmb, 1);
+			for (size_t i = 0; i < nmb; ++i) {
+				resource_t *res = resource_get_by_type_id(&pe->resource_table, RT_GROUP_ICON, i);
+				icon_group_deserialize(&pe->resource_table, res, &pe->resource_table.icongroups[i]);
+			}
+			if (ppelib_error_peek()) {
+				//printf("Versioninfo_deserialize: %s\n", ppelib_error());
+				//ppelib_reset_error();
+			}
 		}
 	}
 out:

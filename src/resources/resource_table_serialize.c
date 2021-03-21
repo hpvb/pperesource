@@ -34,15 +34,21 @@ thread_local static string_table_t string_table;
 thread_local static size_t total_size;
 
 static int typecmp(const void *a, const void *b) {
-	resource_t *ra = (resource_t *)a;
-	resource_t *rb = (resource_t *)b;
+	resource_t *ra = *(resource_t **)a;
+	resource_t *rb = *(resource_t **)b;
 
 	if (ra->type && rb->type) {
 		return strcmp(ra->type, rb->type);
 	}
 
 	if (!ra->type && !rb->type) {
-		return (ra->type_id > rb->type_id);
+		if (ra->type_id < rb->type_id) {
+			return -1;
+		}
+		if (ra->type_id > rb->type_id) {
+			return 1;
+		}
+		return 0;
 	}
 
 	if (ra->type) {
@@ -53,15 +59,21 @@ static int typecmp(const void *a, const void *b) {
 }
 
 static int namecmp(const void *a, const void *b) {
-	resource_t *ra = (resource_t *)a;
-	resource_t *rb = (resource_t *)b;
+	resource_t *ra = *(resource_t **)a;
+	resource_t *rb = *(resource_t **)b;
 
 	if (ra->name && rb->name) {
 		return strcmp(ra->name, rb->name);
 	}
 
 	if (!ra->name && !rb->name) {
-		return (ra->name_id > rb->name_id);
+		if (ra->name_id < rb->name_id) {
+			return -1;
+		}
+		if (ra->name_id > rb->name_id) {
+			return 1;
+		}
+		return 0;
 	}
 
 	if (ra->name) {
@@ -72,15 +84,21 @@ static int namecmp(const void *a, const void *b) {
 }
 
 static int langcmp(const void *a, const void *b) {
-	resource_t *ra = (resource_t *)a;
-	resource_t *rb = (resource_t *)b;
+	resource_t *ra = *(resource_t **)a;
+	resource_t *rb = *(resource_t **)b;
 
 	if (ra->language && rb->language) {
 		return strcmp(ra->language, rb->language);
 	}
 
 	if (!ra->language && !rb->language) {
-		return (ra->language_id > rb->language_id);
+		if (ra->language_id < rb->language_id) {
+			return -1;
+		}
+		if (ra->language_id > rb->language_id) {
+			return 1;
+		}
+		return 0;
 	}
 
 	if (ra->language) {
@@ -317,9 +335,9 @@ size_t resource_table_serialize(const section_t *section, const size_t offset, r
 		return 0;
 	}
 
-	qsort(resource_table->resources, resource_table->size, sizeof(resource_t), &langcmp);
-	qsort(resource_table->resources, resource_table->size, sizeof(resource_t), &namecmp);
-	qsort(resource_table->resources, resource_table->size, sizeof(resource_t), &typecmp);
+	qsort(resource_table->resources, resource_table->size, sizeof(resource_t *), &langcmp);
+	qsort(resource_table->resources, resource_table->size, sizeof(resource_t *), &namecmp);
+	qsort(resource_table->resources, resource_table->size, sizeof(resource_t *), &typecmp);
 
 	resource_directory_table_t *root = calloc(sizeof(resource_directory_table_t), 1);
 	memset(&string_table, 0, sizeof(string_table));
@@ -329,7 +347,7 @@ size_t resource_table_serialize(const section_t *section, const size_t offset, r
 	root->minor_version = resource_table->minor_version;
 
 	for (size_t i = 0; i < resource_table->size; ++i) {
-		resource_t *resource = &resource_table->resources[i];
+		resource_t *resource = resource_table->resources[i];
 		resource_create(root, resource);
 
 		if (resource->type) {
@@ -369,7 +387,12 @@ size_t resource_table_serialize(const section_t *section, const size_t offset, r
 
 void update_resource_table(ppelib_file_t *pe) {
 	for (size_t i = 0; i < pe->resource_table.numb_versioninfo; ++i) {
-		versioninfo_serialize(&pe->resource_table.versioninfo[i]);
+		for (size_t l = 0; l < pe->resource_table.size; ++l) {
+			if (&pe->resource_table.resources[l] == &pe->resource_table.versioninfo[i].resource) {
+				versioninfo_serialize(&pe->resource_table.versioninfo[i]);
+				break;
+			}
+		}
 	}
 
 	ppelib_recalculate(pe);

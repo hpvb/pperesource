@@ -39,12 +39,13 @@ if cc.get_id() == 'msvc'
 	)
 endif
 
-libs = []
+m_dep = cc.find_library('m', required : false)
+libs = [m_dep]
 
 if host_machine.system() == 'windows'
-	inc = include_directories('include', 'src', 'src/thirdparty/winiconv')
+	inc = include_directories('include', 'src', 'src/thirdparty/lodepng', 'src/thirdparty/winiconv')
 else
-	inc = include_directories('include', 'src')
+	inc = include_directories('include', 'src', 'src/thirdparty/lodepng')
 
 	if cc.has_function('iconv_open')
 		found_iconv = true

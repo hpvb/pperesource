@@ -139,7 +139,7 @@ void versioninfo_print(const version_info_t *versioninfo) {
 	gmtime_r(&time, &tm_time);
 	strftime(time_date_stamp, sizeof(time_date_stamp), "%a, %d %b %Y %H:%M:%S %z", &tm_time);
 	time_date_stamp[sizeof(time_date_stamp) - 1] = 0;
-	printf("Date: %s\n", time_date_stamp);
+	printf("Date: (%016" PRIx64 ") %s\n", versioninfo->date, time_date_stamp);
 
 	for (size_t i = 0; i < versioninfo->numb_fileinfo; ++i) {
 		dictionary_t *fileinfo = versioninfo->fileinfo[i];
@@ -154,8 +154,8 @@ void versioninfo_print(const version_info_t *versioninfo) {
 		printf("Translations: ");
 		for (size_t i = 0; i < versioninfo->numb_languages; ++i) {
 			if (i > 0)
-				printf(" ,");
-			printf("0x%04X 0x%04X ",
+				printf(", ");
+			printf("0x%04X 0x%04X",
 					versioninfo->languages[i].language, versioninfo->languages[i].codepage);
 		}
 		printf("\n");

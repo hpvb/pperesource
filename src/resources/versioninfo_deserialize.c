@@ -124,10 +124,11 @@ static size_t varfileinfo_deserialize(const uint8_t *buffer, size_t size, size_t
 		goto out;
 	}
 
-	versioninfo->numb_languages = numb_values;
-	versioninfo->languages = malloc(numb_values * 4);
+	size_t old_numb_languages = versioninfo->numb_languages;
+	versioninfo->numb_languages += numb_values;
+	versioninfo->languages = realloc(versioninfo->languages, versioninfo->numb_languages * 4);
 
-	for (size_t i = 0; i < numb_values; ++i) {
+	for (size_t i = old_numb_languages; i < versioninfo->numb_languages; ++i) {
 		versioninfo->languages[i].language = read_uint16_t(buffer + offset + value_offset);
 		versioninfo->languages[i].codepage = read_uint16_t(buffer + offset + value_offset + 2);
 		value_offset += 4;
@@ -465,6 +466,5 @@ void versioninfo_deserialize(resource_t *resource, version_info_t *versioninfo) 
 	}
 
 out:
-
 	free(key);
 }

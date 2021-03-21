@@ -24,6 +24,7 @@
 #include "pe/constants.h"
 #include "pe/section_private.h"
 
+#include "resources/icon_group.h"
 #include "resources/versioninfo.h"
 
 typedef struct resource {
@@ -59,11 +60,17 @@ typedef struct resource_table {
 	uint16_t major_version;
 	uint16_t minor_version;
 
-	resource_t *resources;
+	resource_t **resources;
 
 	size_t numb_versioninfo;
 	version_info_t *versioninfo;
+
+	size_t numb_icon_group;
+	icon_group_t *icongroups;
 } resource_table_t;
+
+void resource_table_free(resource_table_t *resource_table);
+void resource_delete(resource_table_t *resource_table, resource_t *resource);
 
 size_t resource_table_deserialize(const section_t *section, const size_t offset, resource_table_t *resource_table);
 size_t resource_table_serialize(const section_t *section, const size_t offset, resource_table_t *resource_table);
@@ -71,8 +78,12 @@ void resource_table_print(resource_table_t *resource_table);
 void update_resource_table(ppelib_file_t *pe);
 
 size_t resource_get_by_type_name(char *type);
-size_t resource_get_by_type_id(const resource_table_t *resource_table, uint32_t type, resource_t **resource);
+size_t resource_count_by_type_id(const resource_table_t *resource_table, uint32_t type);
+resource_t *resource_get_by_type_id(const resource_table_t *resource_table, uint32_t type, size_t idx);
 
 size_t resource_get_numb_versioninfo(const resource_table_t *resource_table);
 version_info_t *resource_get_versioninfo(const resource_table_t *resource_table, size_t idx);
+
+size_t resource_get_numb_icon_group(const resource_table_t *resource_table);
+icon_group_t *resource_get_icon_group(const resource_table_t *resource_table, size_t idx);
 #endif /* SRC_RESOURCES_RESOURCE_H_ */

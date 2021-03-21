@@ -25,23 +25,90 @@
 #include "ppe_error.h"
 #include "resources/resource.h"
 
-size_t resource_get_by_type_id(const resource_table_t *resource_table, uint32_t type, resource_t **resource) {
+void resource_free(resource_t *resource) {
+	free(resource->type);
+	free(resource->name);
+	free(resource->language);
+	free(resource->data);
+	free(resource);
+}
+
+void resource_table_free(resource_table_t *resource_table) {
+	for (size_t i = 0; i < resource_table->numb_versioninfo; ++i) {
+		versioninfo_free(&resource_table->versioninfo[i]);
+	}
+	free(resource_table->versioninfo);
+
+	for (size_t i = 0; i < resource_table->numb_icon_group; ++i) {
+		icon_group_free(&resource_table->icongroups[i]);
+	}
+	free(resource_table->icongroups);
+
+	for (size_t i = 0; i < resource_table->size; ++i) {
+		resource_free(resource_table->resources[i]);
+	}
+	free(resource_table->resources);
+}
+
+size_t resource_count_by_type_id(const resource_table_t *resource_table, uint32_t type) {
 	ppelib_reset_error();
-	*resource = NULL;
 
 	size_t size = 0;
 
 	for (size_t i = 0; i < resource_table->size; ++i) {
-		if (resource_table->resources[i].type_id == type) {
-			if (!*resource) {
-				*resource = &resource_table->resources[i];
-			}
-
+		if (resource_table->resources[i]->type_id == type) {
 			++size;
 		}
 	}
 
 	return size;
+}
+
+resource_t *resource_get_by_type_id(const resource_table_t *resource_table, uint32_t type, size_t idx) {
+	ppelib_reset_error();
+
+	size_t size = 0;
+
+	for (size_t i = 0; i < resource_table->size; ++i) {
+		if (resource_table->resources[i]->type_id == type) {
+			if (size == idx) {
+				return resource_table->resources[i];
+			}
+			++size;
+		}
+	}
+
+	return NULL;
+}
+
+void resource_delete(resource_table_t *resource_table, resource_t *resource) {
+	for (size_t i = 0; i < resource_table->size; ++i) {
+		if (resource_table->resources[i] == resource) {
+			resource_free(resource);
+
+			--resource_table->size;
+			memmove(&resource_table->resources[i], &resource_table->resources[i + 1], (resource_table->size - i) * sizeof(void *));
+			resource_table->resources = realloc(resource_table->resources, resource_table->size * sizeof(void *));
+			return;
+		}
+	}
+}
+
+size_t resource_get_numb_icon_group(const resource_table_t *resource_table) {
+	ppelib_reset_error();
+
+	return resource_table->numb_icon_group;
+}
+
+icon_group_t *resource_get_icon_group(const resource_table_t *resource_table, size_t idx) {
+	ppelib_reset_error();
+
+	if (idx >= resource_table->numb_icon_group) {
+		ppelib_set_error("Index out of range");
+		return NULL;
+	}
+
+	return &resource_table->icongroups[idx];
 }
 
 size_t resource_get_numb_versioninfo(const resource_table_t *resource_table) {
